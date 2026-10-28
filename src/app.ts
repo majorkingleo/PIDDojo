@@ -251,11 +251,13 @@ export class DojoController {
       this.acc -= DT;
       steps++;
 
+      const sp = this.setpointAt(this.state.time);
+      plant.setSetpoint(sp);
       const pv = plant.measurement();
-      const e = this.setpoint - pv;
+      const e = sp - pv;
 
       // Values the runner injects before every call.
-      this.mem.sp = this.setpoint;
+      this.mem.sp = sp;
       this.mem.pv = pv;
       this.mem.prevE = this.prevE;
       this.mem.t = this.state.time;
@@ -282,7 +284,7 @@ export class DojoController {
       if (this.stepCount % SAMPLE_EVERY === 0) {
         const sample = {
           t: this.state.time,
-          sp: this.setpoint,
+          sp,
           pv: plant.measurement(),
           u: uc,
         };
@@ -302,6 +304,10 @@ export class DojoController {
     } else {
       this.inBandSince = null;
     }
+
+    // Tasks with a disturbance or a ramp must run long enough to show it.
+    const minRunTime = task.acceptance.minRunTime ?? 0;
+    if (t < minRunTime) return false;
 
     const held = this.inBandSince !== null && t - this.inBandSince >= SETTLE_HOLD;
     const timedOut = t >= task.acceptance.maxRunTime;
@@ -323,6 +329,12 @@ export class DojoController {
   private fail(message: string): void {
     endRun(this.state, 'error', message);
     this.emit(true);
+  }
+
+  /** Setpoint at simulation time t (constant unless the task defines a profile). */
+  private setpointAt(t: number): number {
+    const profile = this.task?.profile;
+    return profile ? profile(t, this.setpoint) : this.setpoint;
   }
 
   // -- drawing --------------------------------------------------------------

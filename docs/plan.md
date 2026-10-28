@@ -50,6 +50,7 @@ Each task has:
 - a **chart** showing what is happening
 - a **help page** explaining the rules for determining controller parameters
   (available in English and German, switchable in the header)
+- optionally a **setpoint profile** (e.g. a ramp) instead of a constant target
 - a **formula field** where controller code can be entered
 - a **note field**
 
@@ -246,10 +247,24 @@ pid-dojo/
 
 ---
 
-## Ideas for tasks
+## Tasks
 
-- flying a balloon
-- heating a tank
+Shipped in Phase 1 (all solvable with a plain P controller):
+
+- **Heated tank** — first-order thermal plant, offset from the standing heat loss
+- **Hot-air balloon** — integrating plant with drag, offset from the holding duty
+- **Balloon climb** — the same balloon with a *moving* (ramping) setpoint, so the
+  scored error is a tracking lag instead of an offset
+- **Cruise control** — car speed with quadratic drag and a hill that arrives
+  mid-run (disturbance rejects to an offset, never to zero)
+- **Antenna servo** — second-order rotational plant: P reaches the target
+  exactly but rings; the D term of Phase 3 is what dampens it
+- **Level tank** — nonlinear `√h` drain, so the same gain behaves differently
+  at low and high fill levels
+
+A task may define a **setpoint profile** `sp(t)`; without one the setpoint is
+constant (a classic step response). Ideas for later phases: magnetic levitation,
+plants with dead time, and multi-loop systems.
 
 ## Phases
 

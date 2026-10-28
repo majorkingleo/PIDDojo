@@ -37,6 +37,10 @@ export class BalloonPlant implements Plant {
     this.reset();
   }
 
+  setSetpoint(setpoint: number): void {
+    if (Number.isFinite(setpoint)) this.sp = setpoint;
+  }
+
   reset(): void {
     this.h = this.params.h0 ?? 0;
     this.v = 0;

@@ -314,6 +314,7 @@ async function loadWorksheet(wb: Worksheet): Promise<void> {
   ui.plantDesc.title = description.join('\n');
 
   chart?.setUnit(task.unit);
+  chart?.setURange(task.uMin, task.uMax);
   renderLegend(task.unit);
   editor?.setValue(wb.formula);
   ui.notes.value = wb.notes;

@@ -33,6 +33,10 @@ export class TankPlant implements Plant {
     this.reset();
   }
 
+  setSetpoint(setpoint: number): void {
+    if (Number.isFinite(setpoint)) this.sp = setpoint;
+  }
+
   reset(): void {
     this.T = this.params.T0 ?? this.params.T_amb;
     this.u = 0;

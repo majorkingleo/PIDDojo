@@ -193,10 +193,11 @@ export interface Metrics {
 }
 
 export interface AcceptanceCriteria {
-  maxSettleTime: number;       // s
+  maxSettleTime: number | null;   // null = not scored (moving setpoint)
   maxOvershootPct: number | null; // null = not applicable
   maxSteadyStateError: number;
-  maxRunTime: number;          // stop evaluation after this many seconds
+  maxRunTime: number;             // stop evaluation after this many seconds
+  minRunTime?: number;            // keep running at least this long
 }
 
 export interface TaskDef {
@@ -213,6 +214,8 @@ export interface TaskDef {
   uMax: number;
   unit: string;                // °C / m — chart axis + metric labels
   starterFormula: string;      // template placed in the editor
+  /** Optional moving setpoint: sp(t) = profile(t, baseSetpoint). */
+  profile?: (t: number, base: number) => number;
 }
 
 export interface RNG {
@@ -223,6 +226,8 @@ export interface RNG {
 export interface Plant {
   /** Set params from a worksheet and reset to initial conditions. */
   configure(params: PlantParams, setpoint: number): void;
+  /** Update the setpoint (tasks with a moving profile call this every step). */
+  setSetpoint(setpoint: number): void;
   reset(): void;
   /** Advance physics by dt seconds with control signal u (already clamped). */
   step(u: number, dt: number): void;
@@ -565,15 +570,27 @@ overshootPct <= maxOvershootPct`).
 |---|---|---|---|---|
 | Tank | 30 s | 20 % | 1.5 °C | 60 s |
 | Balloon | 40 s | null (offset allowed) | 15 m (offset band) | 90 s |
+| Balloon climb (ramp) | null (not scored) | null | 6 m (tracking lag) | 40 s, min 40 |
+| Cruise control | 30 s | 15 % | 1.5 km/h | 60 s, min 25 |
+| Antenna servo | 6 s | 15 % | 1° | 30 s |
+| Level tank | 25 s | 10 % | 0.1 m | 60 s |
 
-`node tools/tune.mjs 500` sweeps 500 seeds per task with the starter formulas
-(tank `Kp = 4`, balloon `Kp = 0.05`); all 1000 runs pass. Worst cases:
-tank 14.2 s / 0 % / 0.28 °C, balloon 33.0 s / 9.7 % / 7.65 m.
+`node tools/tune.mjs 1200` sweeps 1200 seeds per task with the starter gains
+(tank 4, balloon 0.05, climb 0.06, cruise 0.3, servo 0.015, level 10); all 7200
+runs pass. Worst cases: tank 14.6 s / 0 % / 0.31 °C, balloon 33.6 s / 10.3 % /
+7.8 m, climb 5.53 m lag, cruise 9.5 s / 0 % / 1.33 km/h, servo 4.8 s / 10 % /
+0.31°, level 20.5 s / 0 % / 0.07 m.
 
 > **As built:** the run also stops early once `|e| ≤ maxSteadyStateError`
 > has held for 5 s (see `SETTLE_HOLD` in `app.ts`), so a settled run does not
 > sit at the `maxRunTime` wall. Metrics are then computed over the history
 > collected up to that point.
+>
+> Tasks with a disturbance or a moving setpoint set `minRunTime` so the early
+> stop cannot cut them short (cruise control waits 25 s for the hill, the
+> climb task runs the full 40 s). `maxSettleTime: null` means the settle time
+> is not scored at all — used by the climb task, where only the tracking lag
+> is judged.
 
 > The tank is first-order (overshoot only from large Kp), the balloon is
 > integrating with drag (offset expected). Both criteria intentionally allow
@@ -701,6 +718,8 @@ Everything above is implemented; these are the deliberate differences.
 | 11 | "workbook" as the unit of work | renamed to **worksheet** everywhere: UI label, `Worksheet` type, `saveWorksheet()`/`listWorksheets()`/…, IndexedDB store `worksheets`, `pid-dojo-worksheet` key | consistent naming; DB v2 copies rows from the old `workbooks` store once, so existing local data survives |
 | 12 | worksheets were only identifiable by seed/date | added `Worksheet.name` + a name field in the header; empty name falls back to `seed … · date`, export files use a slug of the name | lets the user tell variants apart; stored worksheets without a name are normalised to `''` on load |
 | 13 | no way to inspect intermediate values | `debug(...)` / `log(...)` injected into the compiled user code, rendered in a **Debug log** tab next to the editor (timestamped, 500 lines/run cap) | tuning depends on seeing intermediate values; `console.log` at 100 Hz would flood the devtools console instead |
+| 14 | two Phase 1 tasks (tank, balloon) | six tasks: + **balloon climb** (moving setpoint), **cruise control** (hill disturbance), **antenna servo** (second-order, `u ∈ [−1,1]`), **level tank** (nonlinear `√h` drain) | each adds one Phase 1 lesson (tracking lag, disturbance offset, overshoot, operating-point dependence); all are validated over 1200 seeds each |
+| 15 | fixed setpoint per task | `TaskDef.profile(t, base)` for moving setpoints + `Plant.setSetpoint()` + `minRunTime` in the acceptance | needed by the climb task; also lets future tasks ramp or step their target |
 
 Known limitation: `File System Access API` writes only run when a folder has
 been picked and permission is still granted; silently skipped otherwise

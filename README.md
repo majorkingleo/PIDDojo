@@ -9,6 +9,10 @@ Phase 1 ships two proportional-control tasks:
 | --- | --- | --- |
 | **Heated tank** | first-order thermal model | heater duty cycle, 0…1 |
 | **Hot-air balloon** | integrating vertical motion with drag | burner intensity, 0…1 |
+| **Balloon climb** | same balloon, setpoint ramps at 2 m/s | burner intensity, 0…1 |
+| **Cruise control** | car speed with quadratic drag and a hill | throttle, 0…1 |
+| **Antenna servo** | second-order rotational plant | motor torque, −1…1 |
+| **Level tank** | nonlinear fill/drain (`√h` outflow) | inlet valve, 0…1 |
 
 Each task is randomised — but reproducibly, from a stored seed — into a
 **worksheet**: plant parameters, the setpoint, your formula and your notes.
@@ -101,11 +105,12 @@ docs/
 thresholds can be checked without a browser:
 
 ```sh
-node tools/tune.mjs 500    # 500 seeds per task with the starter formulas
+node tools/tune.mjs 1200    # 1200 seeds per task with the starter gains
 ```
 
-Both tasks currently pass on all seeds (worst tank settle 14.2 s of a 30 s
-budget; worst balloon settle 33.0 s of 40 s).
+All six tasks pass on every seed (worst cases: tank settle 14.6 s of a 30 s
+budget, cruise 9.5 s of 30 s with 1.33 km/h of offset on the hill, servo 4.8 s
+with 10 % overshoot, level 20.5 s of 25 s, balloon climb 5.5 m of lag).
 
 ## Phase plan
 

@@ -60,11 +60,14 @@ export interface Metrics {
 }
 
 export interface AcceptanceCriteria {
-  maxSettleTime: number;
+  /** null = settle time is not scored (e.g. a continuously moving setpoint). */
+  maxSettleTime: number | null;
   /** null = overshoot is not scored for this task (offset allowed). */
   maxOvershootPct: number | null;
   maxSteadyStateError: number;
   maxRunTime: number;
+  /** Keep running at least this long, e.g. to reach a disturbance or ramp. */
+  minRunTime?: number;
 }
 
 export interface TaskDef {
@@ -84,6 +87,11 @@ export interface TaskDef {
   unit: string;
   /** Starter code placed in the editor for a new worksheet. */
   starterFormula: string;
+  /**
+   * Optional moving setpoint: sp(t) = profile(t, baseSetpoint).
+   * Without a profile the setpoint is the worksheet value, constant.
+   */
+  profile?: (t: number, base: number) => number;
 }
 
 /** Seeded pseudo random number generator. Never use Math.random() in plants. */
@@ -95,6 +103,8 @@ export interface RNG {
 export interface Plant {
   /** Apply params + setpoint and reset to the initial conditions. */
   configure(params: PlantParams, setpoint: number): void;
+  /** Update the setpoint (used by tasks with a moving setpoint profile). */
+  setSetpoint(setpoint: number): void;
   /** Reset the state, keeping the current params. */
   reset(): void;
   /** Advance the physics by dt seconds with the (already clamped) control u. */

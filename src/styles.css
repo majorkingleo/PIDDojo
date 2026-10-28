@@ -55,12 +55,14 @@ body {
 
 #app {
   display: grid;
-  grid-template-rows: auto minmax(280px, 1fr) auto;
+  grid-template-rows: auto minmax(260px, 1fr) minmax(340px, auto);
   gap: 12px;
   padding: 12px;
-  height: 100vh;
-  max-height: 100vh;
-  overflow: hidden;
+  height: 100dvh;
+  max-height: 100dvh;
+  /* Short viewports cannot fit header + workspace + editor: scroll instead of
+     clipping (clipped rows used to swallow clicks on the Run button). */
+  overflow: auto;
 }
 
 /* -- top bar ---------------------------------------------------------------- */
@@ -295,6 +297,7 @@ input[type='text']:focus-visible,
 /* -- debug log ------------------------------------------------------------- */
 
 .debug-toolbar {
+  flex: none;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -524,6 +527,7 @@ input[type='text']:focus-visible,
 /* -- metrics ---------------------------------------------------------------- */
 
 .metrics {
+  flex: none;
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 8px;

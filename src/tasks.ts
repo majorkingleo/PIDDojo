@@ -5,9 +5,19 @@
 import type { Metrics, Sample, TaskDef, Worksheet } from './types';
 import { TankPlant } from './simulation/tank';
 import { BalloonPlant } from './simulation/balloon';
+import { CruisePlant } from './simulation/cruise';
+import { ServoPlant } from './simulation/servo';
+import { LevelPlant } from './simulation/level';
 import { createRng } from './simulation/rng';
 import { newId } from './state';
-import { BALLOON_HELP, TANK_HELP } from './i18n';
+import {
+  BALLOON_HELP,
+  BALLOON_RAMP_HELP,
+  CRUISE_HELP,
+  LEVEL_HELP,
+  SERVO_HELP,
+  TANK_HELP,
+} from './i18n';
 
 const TANK_STARTER = `// Heated tank — Phase 1: P controller
 // e = setpoint - T   (temperature error, °C)
@@ -25,6 +35,45 @@ const BALLOON_STARTER = `// Hot-air balloon — Phase 1: P controller
 // debug(e) writes to the "Debug log" tab
 function control(e, dt, mem) {
   const Kp = 0.05;       // try 0.01 … 0.2
+  return Kp * e;
+}
+`;
+
+const RAMP_STARTER = `// Balloon climb — Phase 1: P controller
+// The target climbs at 2 m/s, so a larger Kp means a smaller lag.
+// debug(e) writes to the "Debug log" tab
+function control(e, dt, mem) {
+  const Kp = 0.06;       // try 0.03 … 0.15
+  return Kp * e;
+}
+`;
+
+const CRUISE_STARTER = `// Cruise control — Phase 1: P controller
+// e = target - actual speed   (km/h)
+// u = throttle 0..1; a hill arrives at t = 15 s.
+// debug(e) writes to the "Debug log" tab
+function control(e, dt, mem) {
+  const Kp = 0.3;        // throttle per km/h
+  return Kp * e;
+}
+`;
+
+const SERVO_STARTER = `// Antenna servo — Phase 1: P controller
+// e = target - angle   (degrees)
+// u = motor torque in [-1, 1]; negative torque turns the other way.
+// debug(e) writes to the "Debug log" tab
+function control(e, dt, mem) {
+  const Kp = 0.015;      // try 0.005 … 0.04
+  return Kp * e;
+}
+`;
+
+const LEVEL_STARTER = `// Level tank — Phase 1: P controller
+// e = target - level   (m)
+// u = inlet valve 0..1
+// debug(e) writes to the "Debug log" tab
+function control(e, dt, mem) {
+  const Kp = 10;         // try 2 … 30
   return Kp * e;
 }
 `;
@@ -71,12 +120,109 @@ function balloonTask(): TaskDef {
   };
 }
 
-export const TASKS: TaskDef[] = [tankTask(), balloonTask()];
+function balloonRampTask(): TaskDef {
+  return {
+    id: 'balloon-ramp',
+    title: 'Balloon climb',
+    phase: 1,
+    plantFactory: () => new BalloonPlant(),
+    help: BALLOON_RAMP_HELP,
+    acceptance: {
+      // The target never stops moving, so only the lag is scored.
+      maxSettleTime: null,
+      maxOvershootPct: null,
+      maxSteadyStateError: 6,
+      maxRunTime: 40,
+      minRunTime: 40,
+    },
+    setpoint: 200,
+    uMin: 0,
+    uMax: 1,
+    unit: 'm',
+    starterFormula: RAMP_STARTER,
+    // Climb at 2 m/s and reach the base setpoint exactly at the end of the run.
+    profile: (t, base) => Math.max(0, base - 80 + 2 * t),
+  };
+}
+
+function cruiseTask(): TaskDef {
+  return {
+    id: 'cruise',
+    title: 'Cruise control',
+    phase: 1,
+    plantFactory: () => new CruisePlant(),
+    help: CRUISE_HELP,
+    acceptance: {
+      maxSettleTime: 30,
+      maxOvershootPct: 15,
+      maxSteadyStateError: 1.5,
+      maxRunTime: 60,
+      // The hill arrives at 15 s: keep going so it is part of the run.
+      minRunTime: 25,
+    },
+    setpoint: 80,
+    uMin: 0,
+    uMax: 1,
+    unit: 'km/h',
+    starterFormula: CRUISE_STARTER,
+  };
+}
+
+function servoTask(): TaskDef {
+  return {
+    id: 'servo',
+    title: 'Antenna servo',
+    phase: 1,
+    plantFactory: () => new ServoPlant(),
+    help: SERVO_HELP,
+    acceptance: {
+      maxSettleTime: 6,
+      maxOvershootPct: 15,
+      maxSteadyStateError: 1,
+      maxRunTime: 30,
+    },
+    setpoint: 90,
+    // A bidirectional motor: negative torque turns the other way.
+    uMin: -1,
+    uMax: 1,
+    unit: '°',
+    starterFormula: SERVO_STARTER,
+  };
+}
+
+function levelTask(): TaskDef {
+  return {
+    id: 'level',
+    title: 'Level tank',
+    phase: 1,
+    plantFactory: () => new LevelPlant(),
+    help: LEVEL_HELP,
+    acceptance: {
+      maxSettleTime: 25,
+      maxOvershootPct: 10,
+      maxSteadyStateError: 0.1,
+      maxRunTime: 60,
+    },
+    setpoint: 2,
+    uMin: 0,
+    uMax: 1,
+    unit: 'm',
+    starterFormula: LEVEL_STARTER,
+  };
+}
+
+export const TASKS: TaskDef[] = [
+  tankTask(),
+  balloonTask(),
+  balloonRampTask(),
+  cruiseTask(),
+  servoTask(),
+  levelTask(),
+];
 
 export function findTask(id: string): TaskDef | undefined {
   return TASKS.find((t) => t.id === id);
 }
-
 /** Create a worksheet with a freshly randomised (but solvable) plant. */
 export function createWorksheet(task: TaskDef, seed: number): Worksheet {
   const rng = createRng(seed);
@@ -117,7 +263,7 @@ export function evaluateRun(task: TaskDef, history: Sample[], time: number): Met
   };
   if (history.length === 0) return empty;
 
-  const sp = history[0].sp;
+  const sp = history[history.length - 1].sp;
   const band = 2 * task.acceptance.maxSteadyStateError;
 
   // Settle time: first sample of the last contiguous run inside the band.
@@ -155,7 +301,9 @@ export function evaluateRun(task: TaskDef, history: Sample[], time: number): Met
 /** Does the run satisfy the task's acceptance criteria? */
 export function passed(task: TaskDef, m: Metrics): boolean {
   const a = task.acceptance;
-  if (m.settleTime === null || m.settleTime > a.maxSettleTime) return false;
+  if (a.maxSettleTime !== null && (m.settleTime === null || m.settleTime > a.maxSettleTime)) {
+    return false;
+  }
   if (m.steadyStateError > a.maxSteadyStateError) return false;
   if (a.maxOvershootPct !== null && (m.overshootPct ?? 0) > a.maxOvershootPct) return false;
   return true;

@@ -144,7 +144,7 @@ const MATH_HELP_EN: HelpGroup[] = [
       {
         name: 'return value',
         description:
-          'clamped to the actuator range (tank: 0…1 heater duty, balloon: 0…1 burner)',
+          'clamped to the task\u2019s actuator range — 0…1 for heaters, valves and burners, −1…1 for the servo',
       },
       { name: 'non-finite return', description: 'NaN / Infinity aborts the run' },
       {
@@ -215,7 +215,7 @@ const MATH_HELP_DE: HelpGroup[] = [
       {
         name: 'Rückgabewert',
         description:
-          'wird auf den Stellbereich begrenzt (Tank: 0…1 Tastgrad, Ballon: 0…1 Brenner)',
+          'wird auf den Stellbereich der Aufgabe begrenzt — 0…1 für Heizung, Ventil und Brenner, −1…1 für das Servo',
       },
       { name: 'kein endlicher Wert', description: 'NaN / Infinity bricht den Lauf ab' },
       {
@@ -428,5 +428,331 @@ halte ihn dort; die Dämpfung kommt mit dem D-Anteil in Phase 3.
 - Einschwingzeit ≤ **40 s**
 - bleibende |Regelabweichung| ≤ **15 m** (Offset-Band)
 - Überschwingen wird hier nicht bewertet
+`,
+};
+
+export const CRUISE_HELP: Localized = {
+  en: `
+## Cruise control
+
+The car has to hold a target speed. The throttle \`u\` (0…1) pushes it
+forward, air drag grows with the square of the speed, and at **t = 15 s** the
+road starts to climb at 3…5°.
+
+### Model
+
+\`\`\`
+m·dv/dt = F·u − c_d·v² − k_roll·m·g − m·g·sin(θ)
+\`\`\`
+
+| symbol | meaning |
+| --- | --- |
+| \`u\` | throttle, 0…1 (clamped) |
+| \`F\` | maximum thrust [N] |
+| \`c_d\` | aerodynamic drag [N·s²/m²] |
+| \`k_roll\` | rolling-resistance coefficient |
+| \`θ\` | road slope: 0 before the hill, constant afterwards |
+
+The process value is in **km/h**, so \`e\` and \`Kp\` are in km/h as well.
+
+### What you control
+
+\`u = Kp·e\`. On the flat the engine only has to beat drag and rolling
+resistance; on the hill it must also lift the car:
+
+\`\`\`
+offset = u_hold / Kp
+\`\`\`
+
+That is the point of this task: **P cannot remove the offset**, and the
+harder the plant has to work, the bigger it gets. Phase 2 adds the integral
+term that fixes it.
+
+### Acceptance
+
+- settle time ≤ **30 s** (the run always continues to t = 25 s, so the hill is included)
+- overshoot ≤ **15 %**
+- steady-state |error| ≤ **1.5 km/h**
+`,
+  de: `
+## Tempomat
+
+Das Auto soll eine Zielgeschwindigkeit halten. Das Gaspedal \`u\` (0…1)
+beschleunigt, der Luftwiderstand wächst mit dem Quadrat der Geschwindigkeit,
+und ab **t = 15 s** steigt die Straße mit 3…5° an.
+
+### Modell
+
+\`\`\`
+m·dv/dt = F·u − c_d·v² − k_roll·m·g − m·g·sin(θ)
+\`\`\`
+
+| Symbol | Bedeutung |
+| --- | --- |
+| \`u\` | Gaspedal, 0…1 (begrenzt) |
+| \`F\` | maximale Antriebskraft [N] |
+| \`c_d\` | Luftwiderstand [N·s²/m²] |
+| \`k_roll\` | Rollwiderstandsbeiwert |
+| \`θ\` | Steigung: 0 vor dem Berg, danach konstant |
+
+Die Regelgröße ist in **km/h**, also sind \`e\` und \`Kp\` ebenfalls in km/h.
+
+### Was du steuerst
+
+\`u = Kp·e\`. In der Ebene muss der Motor nur Luft- und Rollwiderstand
+überwinden, am Berg zusätzlich das Gewicht heben:
+
+\`\`\`
+offset = u_hold / Kp
+\`\`\`
+
+Genau darum geht es hier: **P kann diesen Offset nicht beseitigen**, und je
+mehr die Strecke arbeiten muss, desto größer wird er. Phase 2 ergänzt den
+I-Anteil, der das behebt.
+
+### Abnahmekriterien
+
+- Einschwingzeit ≤ **30 s** (der Lauf geht immer bis t = 25 s, damit der Berg enthalten ist)
+- Überschwingen ≤ **15 %**
+- bleibende |Regelabweichung| ≤ **1,5 km/h**
+`,
+};
+
+export const SERVO_HELP: Localized = {
+  en: `
+## Antenna servo
+
+A dish has to point at a target angle. The motor torque works in both
+directions: \`u ∈ [−1, 1]\` (negative torque turns the other way).
+
+### Model
+
+\`\`\`
+J·θ̈ = K·u − b·θ̇
+\`\`\`
+
+| symbol | meaning |
+| --- | --- |
+| \`u\` | motor torque, −1…1 (clamped) |
+| \`J\` | inertia [kg·m²] |
+| \`K\` | torque constant [N·m] |
+| \`b\` | viscous damping [N·m·s/rad] |
+
+The process value is the angle in **degrees**.
+
+### What you control
+
+\`u = Kp·e\`, with \`e\` in degrees.
+
+This is a **second-order** plant, so the closed loop behaves like a damped
+oscillator:
+
+- large \`Kp\` → fast, but it rings and overshoots
+- small \`Kp\` → smooth, but sluggish
+
+Nothing pushes the antenna back at rest, so there is **no offset** here — the
+angle really does reach the target. What P costs you is overshoot and
+ringing; the D term of Phase 3 is what damps that.
+
+### Acceptance
+
+- settle time ≤ **6 s**
+- overshoot ≤ **15 %**
+- steady-state |error| ≤ **1°**
+`,
+  de: `
+## Antennen-Servo
+
+Eine Antenne soll auf einen Zielwinkel zeigen. Das Motormoment wirkt in beide
+Richtungen: \`u ∈ [−1, 1]\` (negatives Moment dreht zurück).
+
+### Modell
+
+\`\`\`
+J·θ̈ = K·u − b·θ̇
+\`\`\`
+
+| Symbol | Bedeutung |
+| --- | --- |
+| \`u\` | Motormoment, −1…1 (begrenzt) |
+| \`J\` | Trägheitsmoment [kg·m²] |
+| \`K\` | Momentenkonstante [N·m] |
+| \`b\` | viskose Dämpfung [N·m·s/rad] |
+
+Die Regelgröße ist der Winkel in **Grad**.
+
+### Was du steuerst
+
+\`u = Kp·e\`, mit \`e\` in Grad.
+
+Das ist eine **Strecke zweiter Ordnung**, der geschlossene Kreis verhält sich
+wie ein gedämpfter Oszillator:
+
+- großes \`Kp\` → schnell, aber es schwingt und überschwingt
+- kleines \`Kp\` → ruhig, aber träge
+
+Im Stillstand wirkt nichts gegen die Antenne, deshalb gibt es hier **keinen
+Offset** — der Winkel erreicht den Sollwert wirklich. Was P kostet, sind
+Überschwingen und Nachschwingen; der D-Anteil aus Phase 3 dämpft das.
+
+### Abnahmekriterien
+
+- Einschwingzeit ≤ **6 s**
+- Überschwingen ≤ **15 %**
+- bleibende |Regelabweichung| ≤ **1°**
+`,
+};
+
+export const LEVEL_HELP: Localized = {
+  en: `
+## Level tank
+
+Water flows in through a valve and drains out of the bottom under gravity.
+
+### Model
+
+\`\`\`
+A·dh/dt = q_in·u − k_out·√h
+\`\`\`
+
+| symbol | meaning |
+| --- | --- |
+| \`u\` | inlet valve, 0…1 (clamped) |
+| \`A\` | tank area [m²] |
+| \`q_in\` | inlet flow at a fully open valve [m³/s] |
+| \`k_out\` | drain coefficient |
+
+The process value is the level in **metres**.
+
+### What you control
+
+\`u = Kp·e\` with \`e\` in metres.
+
+The drain grows with **√h**, so the plant is nonlinear: the same \`Kp\` reacts
+quite differently at a low and at a high level. At the setpoint the valve
+has to stay partly open, so P leaves the usual offset:
+
+\`\`\`
+offset = u_hold / Kp
+\`\`\`
+
+### Acceptance
+
+- settle time ≤ **25 s**
+- overshoot ≤ **10 %**
+- steady-state |error| ≤ **0.1 m**
+`,
+  de: `
+## Füllstandstank
+
+Wasser läuft über ein Ventil hinein und unten unter Schwerkraft wieder heraus.
+
+### Modell
+
+\`\`\`
+A·dh/dt = q_in·u − k_out·√h
+\`\`\`
+
+| Symbol | Bedeutung |
+| --- | --- |
+| \`u\` | Zulaufventil, 0…1 (begrenzt) |
+| \`A\` | Tankfläche [m²] |
+| \`q_in\` | Zulauf bei ganz offenem Ventil [m³/s] |
+| \`k_out\` | Ablaufkoeffizient |
+
+Die Regelgröße ist der Füllstand in **Metern**.
+
+### Was du steuerst
+
+\`u = Kp·e\` mit \`e\` in Metern.
+
+Der Ablauf wächst mit **√h**, die Strecke ist also nichtlinear: dasselbe \`Kp\`
+wirkt bei niedrigem und bei hohem Füllstand unterschiedlich. Am Sollwert muss
+das Ventil teilweise offen bleiben, deshalb bleibt der übliche Offset:
+
+\`\`\`
+offset = u_hold / Kp
+\`\`\`
+
+### Abnahmekriterien
+
+- Einschwingzeit ≤ **25 s**
+- Überschwingen ≤ **10 %**
+- bleibende |Regelabweichung| ≤ **0,1 m**
+`,
+};
+
+export const BALLOON_RAMP_HELP: Localized = {
+  en: `
+## Balloon climb
+
+The same balloon as in *Hot-air balloon*, but now the target **moves**: it
+climbs at a constant **2 m/s** for the whole run.
+
+### Model
+
+\`\`\`
+F = B0 + B_gain·u − m·g − k_drag·v
+\`\`\`
+
+\`u\` is the burner (0…1), \`v\` the climb rate and \`h\` the altitude — see the
+other balloon task for the parameter table.
+
+### What you control
+
+\`u = Kp·e\`, \`e = sp(t) − h\`.
+
+Following a moving target is different from reaching a fixed one. To keep up
+with a ramp the burner must hold a standing climb rate, and that needs a
+standing control effort. With P control the result is a **constant lag**:
+
+\`\`\`
+lag ≈ u_hold(climb rate) / Kp
+\`\`\`
+
+That lag is what gets scored here: the run continues to the end and the error
+is averaged over the last 5 s, while the target is still climbing.
+
+### Acceptance
+
+- no settle time is scored (the target never stops)
+- steady-state |error| (the lag) ≤ **6 m**
+`,
+  de: `
+## Ballon-Steigflug
+
+Derselbe Ballon wie bei *Heißluftballon*, aber der Sollwert **bewegt sich**:
+er steigt während des ganzen Laufs mit konstant **2 m/s**.
+
+### Modell
+
+\`\`\`
+F = B0 + B_gain·u − m·g − k_drag·v
+\`\`\`
+
+\`u\` ist der Brenner (0…1), \`v\` die Steiggeschwindigkeit und \`h\` die Höhe —
+die Parametertabelle steht in der anderen Ballon-Aufgabe.
+
+### Was du steuerst
+
+\`u = Kp·e\`, \`e = sp(t) − h\`.
+
+Einem bewegten Sollwert zu folgen ist etwas anderes, als einen festen zu
+erreichen. Für eine Rampe muss der Brenner eine bleibende Steigrate halten,
+und dafür braucht es einen bleibenden Stellgrad. Mit P-Regelung ergibt das
+einen **konstanten Rückstand**:
+
+\`\`\`
+lag ≈ u_hold(Steigrate) / Kp
+\`\`\`
+
+Dieser Rückstand wird hier bewertet: der Lauf geht bis zum Ende und der
+Fehler wird über die letzten 5 s gemittelt, während der Sollwert weiter
+steigt.
+
+### Abnahmekriterien
+
+- keine Einschwingzeit (der Sollwert hört nie auf zu steigen)
+- bleibende |Regelabweichung| (der Rückstand) ≤ **6 m**
 `,
 };

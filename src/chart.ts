@@ -27,6 +27,8 @@ export class Chart {
   private observer: ResizeObserver | null = null;
   private light = false;
   private unit: string;
+  private uMin = 0;
+  private uMax = 1;
 
   constructor(
     private readonly host: HTMLElement,
@@ -54,7 +56,7 @@ export class Chart {
       scales: {
         x: { time: false },
         y: { auto: true },
-        u: { range: [0, 1] },
+        u: { range: [this.uMin, this.uMax] },
       },
       axes: [
         { stroke: colors.axis, grid: { stroke: colors.grid }, size: 32 },
@@ -116,6 +118,14 @@ export class Chart {
   setUnit(unit: string): void {
     if (unit === this.unit) return;
     this.unit = unit;
+    this.build();
+  }
+
+  /** Actuator range shown on the right axis (e.g. −1…1 for the servo). */
+  setURange(min: number, max: number): void {
+    if (min === this.uMin && max === this.uMax) return;
+    this.uMin = min;
+    this.uMax = max;
     this.build();
   }
 
