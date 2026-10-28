@@ -9,6 +9,7 @@ import {
   compileController,
   invokeController,
   type CompiledController,
+  type LogFn,
   type Mem,
 } from './controller/compile';
 import { evaluateRun, passed, worksheetSetpoint } from './tasks';
@@ -19,6 +20,16 @@ export const DT = 0.01;
 const MAX_STEPS = 500;
 const SAMPLE_EVERY = 5; // one chart sample every 0.05 s
 const SETTLE_HOLD = 5; // |e| must stay inside the band this long
+/** Upper bound for debug output of a single run. */
+export const MAX_LOG_ENTRIES = 500;
+
+/** One line of debug output, stamped with the simulation time. */
+export interface LogEntry {
+  t: number;
+  text: string;
+  /** True for the "output suppressed" marker. */
+  suppressed?: boolean;
+}
 
 export interface RunInfo {
   status: RunStatus;
@@ -33,6 +44,32 @@ export interface DojoOptions {
   chart: Chart;
   getFormula: () => string;
   onUpdate: (info: RunInfo) => void;
+  /** Called once per line the user's code passes to debug() / log(). */
+  onLog?: (entry: LogEntry) => void;
+  /** Called when the log is emptied (new run or new worksheet). */
+  onLogClear?: () => void;
+}
+
+function formatLogValue(value: unknown): string {
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value)) return String(value);
+    // Keep a few decimals so 1/3 does not print 0.3333333333333333.
+    return Number.isInteger(value) ? String(value) : String(Math.round(value * 1e6) / 1e6);
+  }
+  if (typeof value === 'boolean' || value === null || value === undefined) {
+    return String(value);
+  }
+  try {
+    return JSON.stringify(value) ?? String(value);
+  } catch {
+    return String(value);
+  }
+}
+
+/** debug(a, b) -> "a b"; objects are JSON-encoded. */
+function formatLogArgs(args: unknown[]): string {
+  return args.map(formatLogValue).join(' ');
 }
 
 export class DojoController {
@@ -41,6 +78,10 @@ export class DojoController {
   private readonly chart: Chart;
   private readonly getFormula: () => string;
   private readonly onUpdate: (info: RunInfo) => void;
+  private readonly onLog: ((entry: LogEntry) => void) | undefined;
+  private readonly onLogClear: (() => void) | undefined;
+  private logs: LogEntry[] = [];
+  private logsTruncated = false;
 
   private task: TaskDef | null = null;
   private plant: Plant | null = null;
@@ -68,6 +109,8 @@ export class DojoController {
     this.chart = options.chart;
     this.getFormula = options.getFormula;
     this.onUpdate = options.onUpdate;
+    this.onLog = options.onLog;
+    this.onLogClear = options.onLogClear;
 
     const ctx = this.canvas.getContext('2d');
     if (!ctx) throw new Error('Canvas 2D context unavailable.');
@@ -95,6 +138,7 @@ export class DojoController {
     this.stepCount = 0;
     this.inBandSince = null;
     this.chart.reset();
+    this.clearLog();
     this.emit(true);
   }
 
@@ -104,7 +148,7 @@ export class DojoController {
 
     let control: CompiledController;
     try {
-      control = compileController(this.getFormula());
+      control = compileController(this.getFormula(), this.log);
     } catch (err) {
       this.metrics = null;
       endRun(this.state, 'error', err instanceof Error ? err.message : String(err));
@@ -122,6 +166,7 @@ export class DojoController {
     this.metrics = null;
     beginRun(this.state);
     this.chart.reset();
+    this.clearLog();
     this.emit(true);
   }
 
@@ -133,6 +178,35 @@ export class DojoController {
   stop(): void {
     stopRun(this.state);
     this.emit(true);
+  }
+
+  // -- debug output ---------------------------------------------------------
+
+  /** Sink handed to the user's code as both `debug` and `log`. */
+  private readonly log: LogFn = (...args: unknown[]) => {
+    if (this.logs.length >= MAX_LOG_ENTRIES) {
+      if (!this.logsTruncated) {
+        this.logsTruncated = true;
+        const entry = {
+          t: this.state.time,
+          text: `… output suppressed (max ${MAX_LOG_ENTRIES} lines per run)`,
+          suppressed: true,
+        };
+        this.logs.push(entry);
+        this.onLog?.(entry);
+      }
+      return;
+    }
+
+    const entry = { t: this.state.time, text: formatLogArgs(args) };
+    this.logs.push(entry);
+    this.onLog?.(entry);
+  };
+
+  private clearLog(): void {
+    this.logs = [];
+    this.logsTruncated = false;
+    this.onLogClear?.();
   }
 
   destroy(): void {

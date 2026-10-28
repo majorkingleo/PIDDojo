@@ -12,6 +12,7 @@ import { BALLOON_HELP, TANK_HELP } from './i18n';
 const TANK_STARTER = `// Heated tank — Phase 1: P controller
 // e = setpoint - T   (temperature error, °C)
 // dt = 0.01 s        mem = persistent object
+// debug(e) writes to the "Debug log" tab
 function control(e, dt, mem) {
   const Kp = 4;          // try 1 … 20
   return Kp * e;
@@ -21,6 +22,7 @@ function control(e, dt, mem) {
 const BALLOON_STARTER = `// Hot-air balloon — Phase 1: P controller
 // e = setpoint - h   (altitude error, m)
 // u_hold is small, so Kp has to be small too.
+// debug(e) writes to the "Debug log" tab
 function control(e, dt, mem) {
   const Kp = 0.05;       // try 0.01 … 0.2
   return Kp * e;

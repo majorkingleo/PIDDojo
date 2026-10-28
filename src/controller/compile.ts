@@ -11,6 +11,9 @@ export type Mem = Record<string, number>;
 
 export type CompiledController = (e: number, dt: number, mem: Mem) => number;
 
+/** Sink for `debug(...)` / `log(...)` calls coming out of user code. */
+export type LogFn = (...args: unknown[]) => void;
+
 function message(err: unknown): string {
   if (err instanceof Error) return err.message;
   return String(err);
@@ -18,23 +21,27 @@ function message(err: unknown): string {
 
 /**
  * Compile `source` and return the user's `control(e, dt, mem)` function.
+ * `debug` and `log` are injected as additional parameters of the factory, so
+ * the user's code can call them without touching a global.
  * Throws an Error with a human readable message on syntax errors or when the
  * function is missing.
  */
-export function compileController(source: string): CompiledController {
-  let factory: () => unknown;
+export function compileController(source: string, log: LogFn = () => {}): CompiledController {
+  let factory: (debug: LogFn, log: LogFn) => unknown;
   try {
     // The trailing statement makes the factory return the declared function.
     factory = new Function(
+      'debug',
+      'log',
       `${source}\n;return typeof control === 'function' ? control : undefined;`,
-    ) as () => unknown;
+    ) as (debug: LogFn, log: LogFn) => unknown;
   } catch (err) {
     throw new Error(`Syntax error: ${message(err)}`);
   }
 
   let candidate: unknown;
   try {
-    candidate = factory();
+    candidate = factory(log, log);
   } catch (err) {
     throw new Error(`Error while defining control(): ${message(err)}`);
   }

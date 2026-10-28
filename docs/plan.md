@@ -144,6 +144,8 @@ interface TaskDef {
   - `pv` — process value (measurement)
   - `mem` — persistent state object for integral/derivative values
 - **Syntax highlighting** is enabled in the formula editor.
+- `debug(...)` / `log(...)` inside the formula write to a **debug log tab**
+  next to the editor, so intermediate values can be inspected while tuning.
 - A **help box** lists the available math functions with short descriptions.
 
 Example the user would write:

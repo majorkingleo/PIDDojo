@@ -76,7 +76,22 @@
       <section class="bottom">
         <div class="panel editor-panel">
           <div class="panel-head">
-            <h2>Controller</h2>
+            <div class="tabs" role="tablist">
+              <button
+                id="tab-controller"
+                class="tab active"
+                role="tab"
+                aria-selected="true"
+                aria-controls="pane-controller"
+              >Controller</button>
+              <button
+                id="tab-debug"
+                class="tab"
+                role="tab"
+                aria-selected="false"
+                aria-controls="pane-debug"
+              >Debug log<span id="debug-count" class="tab-count hidden">0</span></button>
+            </div>
             <div class="controls">
               <button id="btn-run" class="btn primary">Run</button>
               <button id="btn-reset" class="btn">Reset</button>
@@ -84,14 +99,30 @@
               <span id="status-badge" class="badge">idle</span>
             </div>
           </div>
-          <div id="editor" class="editor-host"></div>
-          <div id="error-box" class="error-box hidden"></div>
-          <div class="metrics">
-            <div class="metric"><span>settle</span><strong id="m-settle">–</strong></div>
-            <div class="metric"><span>overshoot</span><strong id="m-overshoot">–</strong></div>
-            <div class="metric"><span>steady |e|</span><strong id="m-sse">–</strong></div>
-            <div class="metric"><span>IAE</span><strong id="m-iae">–</strong></div>
-            <div class="metric"><span>verdict</span><strong id="m-verdict">–</strong></div>
+
+          <div id="pane-controller" class="pane" role="tabpanel">
+            <div id="editor" class="editor-host"></div>
+            <div id="error-box" class="error-box hidden"></div>
+            <div class="metrics">
+              <div class="metric"><span>settle</span><strong id="m-settle">–</strong></div>
+              <div class="metric"><span>overshoot</span><strong id="m-overshoot">–</strong></div>
+              <div class="metric"><span>steady |e|</span><strong id="m-sse">–</strong></div>
+              <div class="metric"><span>IAE</span><strong id="m-iae">–</strong></div>
+              <div class="metric"><span>verdict</span><strong id="m-verdict">–</strong></div>
+            </div>
+          </div>
+
+          <div id="pane-debug" class="pane hidden" role="tabpanel">
+            <div class="debug-toolbar">
+              <span class="muted small">
+                Call <code>debug(value, …)</code> or <code>log(value, …)</code> inside your controller.
+              </span>
+              <span class="controls">
+                <span id="debug-status" class="muted small"></span>
+                <button id="btn-clear-log" class="btn ghost small">clear</button>
+              </span>
+            </div>
+            <ol id="debug-log" class="debug-log"></ol>
           </div>
         </div>
 

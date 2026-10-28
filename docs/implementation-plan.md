@@ -369,6 +369,9 @@ Contract:
 - Return value: a finite number → control effort (clamped by the runner).
 - `mem` is created fresh as `{}` at run start; the user can store integral
   (`mem.i`), previous error (`mem.prevE`), etc.
+- `debug(...)` and `log(...)` are injected into the compiled factory: they
+  print their arguments to the **Debug log** tab, stamped with the simulation
+  time and capped at 500 lines per run (§16, row 13).
 - The runner additionally sets, before each call: `mem.sp` (setpoint),
   `mem.pv` (current measurement), `mem.prevE` (previous error), `mem.t`
   (current time) — document these in the help box.
@@ -589,9 +592,9 @@ Single-page layout, CSS grid:
 | Task canvas    | Chart (uPlot)    | Help panel (marked)   |
 | (animation)    | sp/pv/u          | (toggleable, EN/DE)   |
 +----------------+------------------+-----------------------+
-| Formula editor (CodeMirror)         | Math help box        |
-| Run | Reset | Stop                  | Notes textarea        |
-| Metrics: settle / overshoot / error | PASS / FAIL badge    |
+| [Controller] [Debug log]  Run|Reset|Stop              | Math  |
+| Formula editor (CodeMirror)  / debug output list     | help  |
+| Metrics: settle / overshoot / error / PASS-FAIL      | Notes |
 +-----------------------------------------------------------+
 ```
 
@@ -605,6 +608,8 @@ Single-page layout, CSS grid:
 - Autosave notes + formula to IndexedDB on input (debounced).
 - Edit the worksheet name in the header; it is autosaved with the rest of the
   worksheet and drives the dropdown label and the export filename (§16, row 12).
+- Stream `debug()` output into the second tab of the controller panel, with a
+  line counter, a clear button and auto-switch on the first line of a run.
 - Re-render the help panel + math box when the language changes (§17).
 
 Theme: reuse the dark/light theming from `field-map` (`styles.css`), persist
@@ -644,6 +649,9 @@ theme choice in `localStorage`.
 - [x] Formula editor has JS syntax highlighting; a syntax error is shown
       in the UI, not the console only.
 - [x] Math help box lists functions and injected variables.
+- [x] Controller code can call `debug()` / `log()`; the output shows in the
+      **Debug log** tab with timestamps, a line counter and a clear button, and
+      is capped at 500 lines per run (with a visible "suppressed" marker).
 - [x] Notes and formula autosave and survive a reload (IndexedDB), and the
       last opened worksheet is restored.
 - [x] A worksheet can be given a custom name; it is shown in the worksheet
@@ -692,6 +700,7 @@ Everything above is implemented; these are the deliberate differences.
 | 10 | `overshootPct = 100·(max(pv) − sp)/sp` | clamped at 0 for values below the setpoint | avoids "-0.1 %" noise in the UI |
 | 11 | "workbook" as the unit of work | renamed to **worksheet** everywhere: UI label, `Worksheet` type, `saveWorksheet()`/`listWorksheets()`/…, IndexedDB store `worksheets`, `pid-dojo-worksheet` key | consistent naming; DB v2 copies rows from the old `workbooks` store once, so existing local data survives |
 | 12 | worksheets were only identifiable by seed/date | added `Worksheet.name` + a name field in the header; empty name falls back to `seed … · date`, export files use a slug of the name | lets the user tell variants apart; stored worksheets without a name are normalised to `''` on load |
+| 13 | no way to inspect intermediate values | `debug(...)` / `log(...)` injected into the compiled user code, rendered in a **Debug log** tab next to the editor (timestamped, 500 lines/run cap) | tuning depends on seeing intermediate values; `console.log` at 100 Hz would flood the devtools console instead |
 
 Known limitation: `File System Access API` writes only run when a folder has
 been picked and permission is still granted; silently skipped otherwise

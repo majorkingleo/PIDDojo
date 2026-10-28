@@ -4,7 +4,7 @@
 
 import './styles.css';
 import { marked } from 'marked';
-import { DojoController, type RunInfo } from './app';
+import { DojoController, type LogEntry, type RunInfo } from './app';
 import { Chart, seriesColors } from './chart';
 import { CodeEditor } from './controller/editor';
 import { renderMathHelp } from './controller/mathHelp';
@@ -41,6 +41,14 @@ const ui = {
   helpToggle: el<HTMLButtonElement>('btn-help-toggle'),
   editorHost: el<HTMLElement>('editor'),
   errorBox: el<HTMLElement>('error-box'),
+  tabController: el<HTMLButtonElement>('tab-controller'),
+  tabDebug: el<HTMLButtonElement>('tab-debug'),
+  paneController: el<HTMLElement>('pane-controller'),
+  paneDebug: el<HTMLElement>('pane-debug'),
+  debugLog: el<HTMLOListElement>('debug-log'),
+  debugCount: el<HTMLElement>('debug-count'),
+  debugStatus: el<HTMLElement>('debug-status'),
+  btnClearLog: el<HTMLButtonElement>('btn-clear-log'),
   notes: el<HTMLTextAreaElement>('notes'),
   notesStatus: el<HTMLElement>('notes-status'),
   mathTitle: el<HTMLElement>('math-title'),
@@ -204,6 +212,55 @@ function renderRunInfo(info: RunInfo): void {
 }
 
 // ---------------------------------------------------------------------------
+// Debug log
+// ---------------------------------------------------------------------------
+
+function setPane(pane: 'controller' | 'debug'): void {
+  const showDebug = pane === 'debug';
+  ui.paneController.classList.toggle('hidden', showDebug);
+  ui.paneDebug.classList.toggle('hidden', !showDebug);
+  ui.tabController.classList.toggle('active', !showDebug);
+  ui.tabDebug.classList.toggle('active', showDebug);
+  ui.tabController.setAttribute('aria-selected', String(!showDebug));
+  ui.tabDebug.setAttribute('aria-selected', String(showDebug));
+}
+
+function updateDebugCount(): void {
+  const count = ui.debugLog.childElementCount;
+  ui.debugCount.textContent = String(count);
+  ui.debugCount.classList.toggle('hidden', count === 0);
+}
+
+function clearLogView(): void {
+  ui.debugLog.textContent = '';
+  ui.debugStatus.textContent = '';
+  updateDebugCount();
+}
+
+function appendLog(entry: LogEntry): void {
+  // Jump to the log on the first line of a run so the output is not missed.
+  if (ui.debugLog.childElementCount === 0) setPane('debug');
+
+  const item = document.createElement('li');
+  if (entry.suppressed) item.classList.add('suppressed');
+
+  const time = document.createElement('span');
+  time.className = 'log-time';
+  time.textContent = `${entry.t.toFixed(2)} s`;
+
+  const text = document.createElement('span');
+  text.className = 'log-text';
+  text.textContent = entry.text;
+
+  item.append(time, text);
+  ui.debugLog.append(item);
+  ui.debugLog.scrollTop = ui.debugLog.scrollHeight;
+
+  if (entry.suppressed) ui.debugStatus.textContent = 'limit reached';
+  updateDebugCount();
+}
+
+// ---------------------------------------------------------------------------
 // Worksheets
 // ---------------------------------------------------------------------------
 
@@ -324,6 +381,8 @@ async function main(): Promise<void> {
     chart,
     getFormula: () => (editor ? editor.getValue() : ''),
     onUpdate: renderRunInfo,
+    onLog: appendLog,
+    onLogClear: clearLogView,
   });
 
   // -- buttons --------------------------------------------------------------
@@ -367,6 +426,10 @@ async function main(): Promise<void> {
   });
 
   ui.btnTheme.addEventListener('click', () => applyTheme(!isLight()));
+
+  ui.tabController.addEventListener('click', () => setPane('controller'));
+  ui.tabDebug.addEventListener('click', () => setPane('debug'));
+  ui.btnClearLog.addEventListener('click', () => clearLogView());
 
   ui.helpToggle.addEventListener('click', () => {
     helpCollapsed = ui.helpPanel.classList.toggle('collapsed');

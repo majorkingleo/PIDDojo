@@ -129,6 +129,16 @@ const MATH_HELP_EN: HelpGroup[] = [
     ],
   },
   {
+    title: 'Debug output',
+    entries: [
+      {
+        name: 'debug(value, …)',
+        description: 'prints its arguments to the Debug log tab (max 500 lines per run)',
+      },
+      { name: 'log(value, …)', description: 'alias of debug()' },
+    ],
+  },
+  {
     title: 'Rules of the sandbox',
     entries: [
       {
@@ -187,6 +197,16 @@ const MATH_HELP_DE: HelpGroup[] = [
     entries: [
       { name: 'Math.PI', description: '3,14159…' },
       { name: 'Math.E', description: '2,71828…' },
+    ],
+  },
+  {
+    title: 'Debug-Ausgabe',
+    entries: [
+      {
+        name: 'debug(value, …)',
+        description: 'schreibt seine Argumente in den Tab „Debug log“ (max. 500 Zeilen pro Lauf)',
+      },
+      { name: 'log(value, …)', description: 'Alias für debug()' },
     ],
   },
   {

@@ -54,6 +54,9 @@ npm run preview     # serve the production build
   The runner injects `mem.sp`, `mem.pv`, `mem.prevE`, `mem.t` before every
   call and clamps your return value to the actuator range. `mem` is fresh for
   every run, so `mem.i` (integral) and friends are safe to use in later phases.
+- **Debug log** — call `debug(value…)` or `log(value…)` inside `control()`;
+  the lines appear in the *Debug log* tab next to the editor, stamped with the
+  simulation time. Output is capped at 500 lines per run.
 - **Metrics** — settle time, overshoot, steady-state |error| and IAE, plus a
   PASS / FAIL verdict against the task's acceptance criteria. A run stops
   early once the error has stayed inside the tolerance band for 5 s.
