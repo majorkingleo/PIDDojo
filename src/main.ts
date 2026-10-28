@@ -8,11 +8,12 @@ import { DojoController, type RunInfo } from './app';
 import { Chart, seriesColors } from './chart';
 import { CodeEditor } from './controller/editor';
 import { renderMathHelp } from './controller/mathHelp';
+import { LANGS, UI_TEXT, detectLang, isLang, saveLang } from './i18n';
 import * as store from './persistence';
 import { randomSeed } from './simulation/rng';
 import { TASKS, createWorkbook, findTask } from './tasks';
 import { cloneWorkbook } from './state';
-import type { RunStatus, TaskDef, Workbook } from './types';
+import type { Lang, RunStatus, TaskDef, Workbook } from './types';
 
 const THEME_KEY = 'pid-dojo-theme';
 const TASK_KEY = 'pid-dojo-task';
@@ -27,18 +28,21 @@ function el<T extends HTMLElement>(id: string): T {
 const ui = {
   taskSelect: el<HTMLSelectElement>('task-select'),
   workbookSelect: el<HTMLSelectElement>('workbook-select'),
+  langSelect: el<HTMLSelectElement>('lang-select'),
   scene: el<HTMLCanvasElement>('scene'),
   sceneTitle: el<HTMLElement>('scene-title'),
   plantDesc: el<HTMLElement>('plant-desc'),
   chartHost: el<HTMLElement>('chart'),
   chartLegend: el<HTMLElement>('chart-legend'),
   helpPanel: el<HTMLElement>('help-panel'),
+  helpTitle: el<HTMLElement>('help-title'),
   helpBody: el<HTMLElement>('help-body'),
   helpToggle: el<HTMLButtonElement>('btn-help-toggle'),
   editorHost: el<HTMLElement>('editor'),
   errorBox: el<HTMLElement>('error-box'),
   notes: el<HTMLTextAreaElement>('notes'),
   notesStatus: el<HTMLElement>('notes-status'),
+  mathTitle: el<HTMLElement>('math-title'),
   mathHelp: el<HTMLElement>('math-help'),
   statusBadge: el<HTMLElement>('status-badge'),
   mSettle: el<HTMLElement>('m-settle'),
@@ -65,6 +69,32 @@ let editor: CodeEditor | null = null;
 let dojo: DojoController | null = null;
 let saveTimer: number | undefined;
 let flashTimer: number | undefined;
+let lang: Lang = 'en';
+let helpCollapsed = false;
+
+// ---------------------------------------------------------------------------
+// Language (help pages + math reference only)
+// ---------------------------------------------------------------------------
+
+function renderTaskHelp(): void {
+  const html = marked.parse(currentTask.help[lang]);
+  ui.helpBody.innerHTML = typeof html === 'string' ? html : '';
+}
+
+function applyLang(next: Lang): void {
+  lang = next;
+  saveLang(next);
+  document.documentElement.lang = next;
+  ui.langSelect.value = next;
+
+  const text = UI_TEXT[next];
+  ui.helpTitle.textContent = text.helpTitle;
+  ui.mathTitle.textContent = text.mathTitle;
+  ui.helpToggle.textContent = helpCollapsed ? text.show : text.hide;
+
+  renderMathHelp(ui.mathHelp, next);
+  renderTaskHelp();
+}
 
 // ---------------------------------------------------------------------------
 // Theme
@@ -209,9 +239,7 @@ async function loadWorkbook(wb: Workbook): Promise<void> {
 
   ui.taskSelect.value = task.id;
   ui.sceneTitle.textContent = task.title;
-
-  const html = marked.parse(task.help);
-  ui.helpBody.innerHTML = typeof html === 'string' ? html : '';
+  renderTaskHelp();
 
   const description = task.plantFactory().describe(wb.plantParams);
   ui.plantDesc.textContent = description.join(' · ');
@@ -258,7 +286,13 @@ async function main(): Promise<void> {
   const light = stored === 'light';
   applyTheme(light);
 
-  renderMathHelp(ui.mathHelp);
+  for (const option of LANGS) {
+    const item = document.createElement('option');
+    item.value = option.id;
+    item.textContent = option.label;
+    ui.langSelect.append(item);
+  }
+  applyLang(detectLang());
 
   for (const task of TASKS) {
     const option = document.createElement('option');
@@ -324,8 +358,13 @@ async function main(): Promise<void> {
   ui.btnTheme.addEventListener('click', () => applyTheme(!isLight()));
 
   ui.helpToggle.addEventListener('click', () => {
-    const collapsed = ui.helpPanel.classList.toggle('collapsed');
-    ui.helpToggle.textContent = collapsed ? 'show' : 'hide';
+    helpCollapsed = ui.helpPanel.classList.toggle('collapsed');
+    ui.helpToggle.textContent = helpCollapsed ? UI_TEXT[lang].show : UI_TEXT[lang].hide;
+  });
+
+  ui.langSelect.addEventListener('change', () => {
+    const value = ui.langSelect.value;
+    if (isLang(value)) applyLang(value);
   });
 
   ui.taskSelect.addEventListener('change', () => {

@@ -23,6 +23,8 @@
           <select id="workbook-select">
             <option value="">— current —</option>
           </select>
+          <label for="lang-select">Lang</label>
+          <select id="lang-select" title="Language of the help pages"></select>
         </div>
 
         <div class="topbar-group">
@@ -56,7 +58,7 @@
 
         <aside class="panel help-panel" id="help-panel">
           <div class="panel-head">
-            <h2>Help</h2>
+            <h2 id="help-title">Help</h2>
             <button id="btn-help-toggle" class="btn ghost small">hide</button>
           </div>
           <div id="help-body" class="markdown"></div>
@@ -87,7 +89,7 @@
 
         <div class="side-stack">
           <div class="panel math-panel">
-            <div class="panel-head"><h2>Math &amp; variables</h2></div>
+            <div class="panel-head"><h2 id="math-title">Math &amp; variables</h2></div>
             <div id="math-help" class="math-help"></div>
           </div>
           <div class="panel notes-panel">

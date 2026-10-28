@@ -49,6 +49,7 @@ Each task has:
 - a **visual part** (animated scene, e.g. a heated tank or a flying balloon)
 - a **chart** showing what is happening
 - a **help page** explaining the rules for determining controller parameters
+  (available in English and German, switchable in the header)
 - a **formula field** where controller code can be entered
 - a **note field**
 
@@ -221,6 +222,7 @@ pid-dojo/
     main.ts            # UI wiring
     state.ts           # app + workbook state (pure functions)
     app.ts             # controller / rAF loop
+    i18n.ts            # EN/DE help texts + math reference
     simulation/
       plant.ts         # Plant interface
       tank.ts

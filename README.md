@@ -31,6 +31,9 @@ npm run preview     # serve the production build
 ## Using the dojo
 
 - **Task / Workbook** — pick a scenario, or reopen one of your saved workbooks.
+- **Lang** — switches the help page and the math/variable reference between
+  English and German (stored, so it survives a reload). Code, metrics and
+  verdict intentionally stay in English.
 - **New variant** — a fresh randomised (but always solvable) plant.
 - **Run / Reset / Stop** — *Reset* re-runs the same plant from its initial
   state; `Ctrl`/`Cmd` + `Enter` also starts a run.
@@ -64,6 +67,7 @@ src/
   app.ts               DojoController: 100 Hz physics loop + rAF rendering
   state.ts             run state + workbook helpers
   types.ts             shared contracts (Workbook, Plant, TaskDef, Metrics…)
+  i18n.ts              EN/DE catalogues: task help pages + math reference
   tasks.ts             task registry, workbook factory, metrics, acceptance
   chart.ts             uPlot wrapper (setpoint / pv / u on a second axis)
   persistence.ts       IndexedDB + File System Access API + export/import

@@ -5,6 +5,13 @@
 
 export type Phase = 1 | 2 | 3;
 
+/** UI language. Only the learning content (help pages, math reference) is
+ *  localised; the code editor and metrics stay in English. */
+export type Lang = 'en' | 'de';
+
+/** A string available in every supported language. */
+export type Localized = Record<Lang, string>;
+
 /** Flat, JSON-serialisable model parameters of a plant. */
 export interface PlantParams {
   [key: string]: number;
@@ -64,8 +71,8 @@ export interface TaskDef {
   phase: Phase;
   /** Factory for a fresh, un-configured plant instance. */
   plantFactory: () => Plant;
-  /** Markdown shown in the help panel. */
-  help: string;
+  /** Markdown help page, one document per language. */
+  help: Localized;
   acceptance: AcceptanceCriteria;
   /** Finite step setpoint (the workbook may randomise a different one). */
   setpoint: number;

@@ -53,6 +53,7 @@ pid-dojo/
     app.ts             # DojoController: canvas, rAF loop, orchestration
     state.ts           # app + workbook + run state (pure functions)
     types.ts           # shared types
+    i18n.ts            # EN/DE catalogue: task help pages + math reference
     styles.css         # layout + theme (extend field-map styles)
     simulation/
       plant.ts         # Plant + RNG interfaces, PlantParams type
@@ -203,11 +204,14 @@ export interface TaskDef {
   phase: Phase;
   /** Factory that returns a fresh plant (un-randomized). */
   plantFactory: () => Plant;
-  help: string;                // markdown
+  /** Markdown help page, one document per language (§17). */
+  help: Localized;             // Record<Lang, string>
   acceptance: AcceptanceCriteria;
   setpoint: number;            // target value (step response)
   uMin: number;                // control limits
   uMax: number;
+  unit: string;                // °C / m — chart axis + metric labels
+  starterFormula: string;      // template placed in the editor
 }
 
 export interface RNG {
@@ -578,10 +582,10 @@ Single-page layout, CSS grid:
 
 ```
 +-----------------------------------------------------------+
-| Header: PID Dojo | Phase selector | Task list | New variant |
+| Header: PID Dojo | Task | Workbook | Lang | New variant   |
 +----------------+------------------+-----------------------+
 | Task canvas    | Chart (uPlot)    | Help panel (marked)   |
-| (animation)    | sp/pv/u          | (toggleable)          |
+| (animation)    | sp/pv/u          | (toggleable, EN/DE)   |
 +----------------+------------------+-----------------------+
 | Formula editor (CodeMirror)         | Math help box        |
 | Run | Reset | Stop                  | Notes textarea        |
@@ -597,6 +601,7 @@ Single-page layout, CSS grid:
 - Render the help panel with `marked.parse(help)`.
 - Show metrics + pass/fail badge after a run finishes.
 - Autosave notes + formula to IndexedDB on input (debounced).
+- Re-render the help panel + math box when the language changes (§17).
 
 Theme: reuse the dark/light theming from `field-map` (`styles.css`), persist
 theme choice in `localStorage`.
@@ -643,8 +648,22 @@ theme choice in `localStorage`.
       write path is exercised best-effort on every save and needs one manual
       click on "Folder…" in a Chromium window.*
 - [x] Help page renders Markdown.
+- [x] Help page and math/variable reference switch between **English and
+      German** via the header dropdown, and the choice survives a reload (§17).
 - [x] New variant creates a different but solvable plant (same seed ⇒ same
       result; verified in the 500-seed sweep).
+
+---
+
+## 15. Open decisions (resolved during Phase 1)
+
+- **Acceptance thresholds** — unchanged. `tools/tune.mjs` sweeps 500 seeds per
+  task with the starter formulas and everything passes; the *plant ranges*
+  were adjusted instead (§16, rows 1–2).
+- **Balloon "u bias" in the template** — not needed. `u_hold` is small but
+  non-zero for every seed, so a plain `Kp·e` reaches the band with an offset.
+- **uPlot axis for `u ∈ [0,1]`** — done in Phase 1 rather than Phase 2; `u`
+  has its own right-hand axis (§8).
 
 ---
 
@@ -671,11 +690,57 @@ been picked and permission is still granted; silently skipped otherwise
 
 ---
 
-## 15. Open decisions (flag, do not block)
+## 17. Localization (EN / DE)
 
-- Exact acceptance thresholds in §11 are starting values — tune after manual
-  testing so each task is solvable with a reasonable `Kp`.
-- Balloon Phase 1 may need a small "u bias" term in the template to make P
-  control feasible; add it to the help page if so.
-- uPlot axis scaling for `u ∈ [0,1]` vs `pv` (large units): keep single axis
-  for now; consider a right axis for `u` in Phase 2.
+The learning content ships in **English and German**. A small **Lang**
+dropdown in the header switches it; the choice is stored in `localStorage`
+(`pid-dojo-lang`) and re-applied on the next start.
+
+### Scope
+
+Translated:
+
+- the per-task help page — `TaskDef.help` is a `Record<Lang, string>` of
+  markdown documents,
+- the math / variable reference — group titles **and** every entry,
+- the help chrome: both panel headings and the show/hide button.
+
+Deliberately **not** translated: the formula editor and its starter code,
+the metric names (settle / overshoot / steady-state error / IAE), the
+PASS/FAIL verdict, and the task / workbook controls. Keeping the tuning
+vocabulary in one language means `Kp` and "settle time" always mean the same
+thing, and switching the reader language never touches a workbook.
+
+### Implementation
+
+| File | Change |
+|---|---|
+| `types.ts` | `Lang = 'en' \| 'de'`, `Localized = Record<Lang, string>`, `TaskDef.help: Localized` |
+| `i18n.ts` *(new)* | `LANGS`, `UI_TEXT`, `MATH_HELP: Record<Lang, HelpGroup[]>`, `TANK_HELP` + `BALLOON_HELP`, `detectLang()` / `saveLang()` |
+| `controller/mathHelp.ts` | reduced to a renderer: `renderMathHelp(container, lang)` |
+| `tasks.ts` | imports the help documents instead of owning them |
+| `main.ts` | fills `#lang-select`, `applyLang()` re-renders help + math box, `<html lang>` follows |
+| `index.html` | `#lang-select` in the header, ids on the two help headings |
+
+Language resolution order: stored choice → `navigator.language(s)` → English.
+Changing the language re-renders only the two help surfaces; the simulation,
+the editor content and the workbook are untouched.
+
+### Adding a language
+
+1. Extend `Lang` in `types.ts` (e.g. `'fr'`).
+2. Add an entry to `LANGS` and translate `UI_TEXT`, `MATH_HELP`,
+   `TANK_HELP`, `BALLOON_HELP` in `i18n.ts`.
+3. Nothing else — because `TaskDef.help` is a `Record`, the compiler points
+   at every missing translation.
+
+Checklist:
+
+- [x] `#lang-select` switches help page + math box without touching the
+      workbook or the running simulation.
+- [x] Choice survives a reload (`localStorage`), `<html lang>` follows.
+- [x] Both tasks and all four math groups have German text.
+- [x] German help keeps the formulas, tables and acceptance numbers intact
+      (translation only, no content drift).
+
+
