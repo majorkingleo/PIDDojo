@@ -11,13 +11,13 @@ import { renderMathHelp } from './controller/mathHelp';
 import { LANGS, UI_TEXT, detectLang, isLang, saveLang } from './i18n';
 import * as store from './persistence';
 import { randomSeed } from './simulation/rng';
-import { TASKS, createWorkbook, findTask } from './tasks';
-import { cloneWorkbook } from './state';
-import type { Lang, RunStatus, TaskDef, Workbook } from './types';
+import { TASKS, createWorksheet, findTask } from './tasks';
+import { cloneWorksheet } from './state';
+import type { Lang, RunStatus, TaskDef, Worksheet } from './types';
 
 const THEME_KEY = 'pid-dojo-theme';
 const TASK_KEY = 'pid-dojo-task';
-const WORKBOOK_KEY = 'pid-dojo-workbook';
+const WORKSHEET_KEY = 'pid-dojo-worksheet';
 
 function el<T extends HTMLElement>(id: string): T {
   const found = document.getElementById(id);
@@ -27,7 +27,7 @@ function el<T extends HTMLElement>(id: string): T {
 
 const ui = {
   taskSelect: el<HTMLSelectElement>('task-select'),
-  workbookSelect: el<HTMLSelectElement>('workbook-select'),
+  worksheetSelect: el<HTMLSelectElement>('worksheet-select'),
   langSelect: el<HTMLSelectElement>('lang-select'),
   scene: el<HTMLCanvasElement>('scene'),
   sceneTitle: el<HTMLElement>('scene-title'),
@@ -63,7 +63,7 @@ const ui = {
 };
 
 let currentTask: TaskDef = TASKS[0];
-let workbook: Workbook | null = null;
+let worksheet: Worksheet | null = null;
 let chart: Chart | null = null;
 let editor: CodeEditor | null = null;
 let dojo: DojoController | null = null;
@@ -147,9 +147,9 @@ function flashStatus(text: string, ms = 1600): void {
 }
 
 async function persistNow(): Promise<void> {
-  if (!workbook) return;
+  if (!worksheet) return;
   try {
-    await store.saveWorkbook(cloneWorkbook(workbook));
+    await store.saveWorksheet(cloneWorksheet(worksheet));
     flashStatus('saved');
   } catch {
     flashStatus('save failed');
@@ -157,7 +157,7 @@ async function persistNow(): Promise<void> {
 }
 
 function scheduleSave(): void {
-  if (!workbook) return;
+  if (!worksheet) return;
   flashStatus('saving…');
   if (saveTimer !== undefined) clearTimeout(saveTimer);
   saveTimer = window.setTimeout(() => {
@@ -203,17 +203,17 @@ function renderRunInfo(info: RunInfo): void {
 }
 
 // ---------------------------------------------------------------------------
-// Workbooks
+// Worksheets
 // ---------------------------------------------------------------------------
 
-async function refreshWorkbookList(): Promise<void> {
-  const all = await store.listWorkbooks();
-  ui.workbookSelect.textContent = '';
+async function refreshWorksheetList(): Promise<void> {
+  const all = await store.listWorksheets();
+  ui.worksheetSelect.textContent = '';
 
   const placeholder = document.createElement('option');
   placeholder.value = '';
   placeholder.textContent = '— none —';
-  ui.workbookSelect.append(placeholder);
+  ui.worksheetSelect.append(placeholder);
 
   let count = 0;
   for (const wb of all) {
@@ -221,21 +221,21 @@ async function refreshWorkbookList(): Promise<void> {
     const option = document.createElement('option');
     option.value = wb.id;
     option.textContent = `seed ${wb.seed} · ${new Date(wb.createdAt).toLocaleString()}`;
-    ui.workbookSelect.append(option);
+    ui.worksheetSelect.append(option);
     count++;
   }
-  if (count === 0) placeholder.textContent = '— no workbooks yet —';
-  ui.workbookSelect.value = workbook?.id ?? '';
+  if (count === 0) placeholder.textContent = '— no worksheets yet —';
+  ui.worksheetSelect.value = worksheet?.id ?? '';
 }
 
-async function loadWorkbook(wb: Workbook): Promise<void> {
+async function loadWorksheet(wb: Worksheet): Promise<void> {
   const task = findTask(wb.taskId);
-  if (!task) throw new Error(`Unknown task "${wb.taskId}" in workbook.`);
+  if (!task) throw new Error(`Unknown task "${wb.taskId}" in worksheet.`);
 
   currentTask = task;
-  workbook = wb;
+  worksheet = wb;
   localStorage.setItem(TASK_KEY, task.id);
-  localStorage.setItem(WORKBOOK_KEY, wb.id);
+  localStorage.setItem(WORKSHEET_KEY, wb.id);
 
   ui.taskSelect.value = task.id;
   ui.sceneTitle.textContent = task.title;
@@ -252,7 +252,7 @@ async function loadWorkbook(wb: Workbook): Promise<void> {
   flashStatus('');
 
   dojo?.load(task, wb);
-  await refreshWorkbookList();
+  await refreshWorksheetList();
 }
 
 async function selectTask(taskId: string): Promise<void> {
@@ -260,20 +260,20 @@ async function selectTask(taskId: string): Promise<void> {
   currentTask = task;
   ui.taskSelect.value = task.id;
 
-  const all = await store.listWorkbooks();
-  const lastId = localStorage.getItem(WORKBOOK_KEY);
+  const all = await store.listWorksheets();
+  const lastId = localStorage.getItem(WORKSHEET_KEY);
   const existing =
     all.find((wb) => wb.id === lastId && wb.taskId === task.id) ??
     all.find((wb) => wb.taskId === task.id);
-  const wb = existing ?? createWorkbook(task, randomSeed());
-  if (!existing) await store.saveWorkbook(wb);
-  await loadWorkbook(wb);
+  const wb = existing ?? createWorksheet(task, randomSeed());
+  if (!existing) await store.saveWorksheet(wb);
+  await loadWorksheet(wb);
 }
 
 async function newVariant(): Promise<void> {
-  const wb = createWorkbook(currentTask, randomSeed());
-  await store.saveWorkbook(wb);
-  await loadWorkbook(wb);
+  const wb = createWorksheet(currentTask, randomSeed());
+  await store.saveWorksheet(wb);
+  await loadWorksheet(wb);
   dojo?.start();
 }
 
@@ -303,8 +303,8 @@ async function main(): Promise<void> {
 
   chart = new Chart(ui.chartHost, TASKS[0].unit, light);
   editor = new CodeEditor(ui.editorHost, TASKS[0].starterFormula, (value) => {
-    if (!workbook) return;
-    workbook.formula = value;
+    if (!worksheet) return;
+    worksheet.formula = value;
     scheduleSave();
   });
 
@@ -323,7 +323,7 @@ async function main(): Promise<void> {
 
   ui.btnSave.addEventListener('click', () => void persistNow());
   ui.btnExport.addEventListener('click', () => {
-    if (workbook) store.exportWorkbook(cloneWorkbook(workbook));
+    if (worksheet) store.exportWorksheet(cloneWorksheet(worksheet));
   });
   ui.btnImport.addEventListener('click', () => ui.fileInput.click());
   ui.fileInput.addEventListener('change', () => {
@@ -332,8 +332,8 @@ async function main(): Promise<void> {
     if (!file) return;
     void (async () => {
       try {
-        const wb = await store.importWorkbookFile(file);
-        await loadWorkbook(wb);
+        const wb = await store.importWorksheetFile(file);
+        await loadWorksheet(wb);
         dojo?.start();
       } catch (err) {
         ui.errorBox.textContent = err instanceof Error ? err.message : String(err);
@@ -371,18 +371,18 @@ async function main(): Promise<void> {
     void selectTask(ui.taskSelect.value);
   });
 
-  ui.workbookSelect.addEventListener('change', () => {
-    const id = ui.workbookSelect.value;
+  ui.worksheetSelect.addEventListener('change', () => {
+    const id = ui.worksheetSelect.value;
     if (!id) return;
     void (async () => {
-      const wb = await store.getWorkbook(id);
-      if (wb) await loadWorkbook(wb);
+      const wb = await store.getWorksheet(id);
+      if (wb) await loadWorksheet(wb);
     })();
   });
 
   ui.notes.addEventListener('input', () => {
-    if (!workbook) return;
-    workbook.notes = ui.notes.value;
+    if (!worksheet) return;
+    worksheet.notes = ui.notes.value;
     scheduleSave();
   });
 
@@ -393,7 +393,7 @@ async function main(): Promise<void> {
     }
   });
 
-  // -- first workbook -------------------------------------------------------
+  // -- first worksheet ------------------------------------------------------
   if (!store.supportsFileSystemAccess()) {
     ui.btnDir.title = 'File System Access API not available in this browser';
   } else {

@@ -3,7 +3,7 @@
 // Physics runs at 100 Hz; drawing follows requestAnimationFrame.
 // ---------------------------------------------------------------------------
 
-import type { Metrics, Plant, RunState, RunStatus, TaskDef, Workbook } from './types';
+import type { Metrics, Plant, RunState, RunStatus, TaskDef, Worksheet } from './types';
 import { beginRun, createRunState, endRun, recordSample, stopRun } from './state';
 import {
   compileController,
@@ -11,7 +11,7 @@ import {
   type CompiledController,
   type Mem,
 } from './controller/compile';
-import { evaluateRun, passed, workbookSetpoint } from './tasks';
+import { evaluateRun, passed, worksheetSetpoint } from './tasks';
 import { clamp } from './simulation/plant';
 import type { Chart } from './chart';
 
@@ -78,13 +78,13 @@ export class DojoController {
 
   // -- lifecycle ------------------------------------------------------------
 
-  /** Point the dojo at a task + workbook (does not start the run). */
-  load(task: TaskDef, workbook: Workbook): void {
+  /** Point the dojo at a task + worksheet (does not start the run). */
+  load(task: TaskDef, worksheet: Worksheet): void {
     this.task = task;
-    this.setpoint = workbookSetpoint(task, workbook);
+    this.setpoint = worksheetSetpoint(task, worksheet);
 
     this.plant = task.plantFactory();
-    this.plant.configure(workbook.plantParams, this.setpoint);
+    this.plant.configure(worksheet.plantParams, this.setpoint);
 
     this.state = createRunState();
     this.metrics = null;

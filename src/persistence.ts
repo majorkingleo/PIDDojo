@@ -2,12 +2,14 @@
 // Persistence: IndexedDB cache (always) + File System Access API (optional).
 // ---------------------------------------------------------------------------
 
-import type { Workbook } from './types';
+import type { Worksheet } from './types';
 
 const DB_NAME = 'pid-dojo';
-const DB_VERSION = 1;
-const STORE_WORKBOOKS = 'workbooks';
+const DB_VERSION = 2;
+const STORE_WORKSHEETS = 'worksheets';
 const STORE_SETTINGS = 'settings';
+/** Store name used before the worksheet rename; migrated once on upgrade. */
+const LEGACY_STORE = 'workbooks';
 const DIR_KEY = 'storage-directory';
 
 // --- minimal File System Access typings (not in lib.dom everywhere) ---------
@@ -36,11 +38,27 @@ function openDb(): Promise<IDBDatabase> {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
     request.onupgradeneeded = () => {
       const db = request.result;
-      if (!db.objectStoreNames.contains(STORE_WORKBOOKS)) {
-        db.createObjectStore(STORE_WORKBOOKS, { keyPath: 'id' });
+      const transaction = request.transaction;
+      if (!db.objectStoreNames.contains(STORE_WORKSHEETS)) {
+        db.createObjectStore(STORE_WORKSHEETS, { keyPath: 'id' });
       }
       if (!db.objectStoreNames.contains(STORE_SETTINGS)) {
         db.createObjectStore(STORE_SETTINGS);
+      }
+      // v1 kept worksheets in a store named "workbooks": copy them over, then
+      // drop the old store. Only ever runs once per browser profile.
+      if (transaction && db.objectStoreNames.contains(LEGACY_STORE)) {
+        const target = transaction.objectStore(STORE_WORKSHEETS);
+        const cursorRequest = transaction.objectStore(LEGACY_STORE).openCursor();
+        cursorRequest.onsuccess = () => {
+          const cursor = cursorRequest.result;
+          if (!cursor) {
+            db.deleteObjectStore(LEGACY_STORE);
+            return;
+          }
+          target.put(cursor.value);
+          cursor.continue();
+        };
       }
     };
     request.onsuccess = () => resolve(request.result);
@@ -65,9 +83,9 @@ function tx<T>(
   );
 }
 
-function isWorkbook(value: unknown): value is Workbook {
+function isWorksheet(value: unknown): value is Worksheet {
   if (typeof value !== 'object' || value === null) return false;
-  const v = value as Partial<Workbook>;
+  const v = value as Partial<Worksheet>;
   return (
     typeof v.id === 'string' &&
     typeof v.taskId === 'string' &&
@@ -111,7 +129,7 @@ async function ensureWritePermission(handle: FileSystemDirectoryHandle): Promise
   return true;
 }
 
-async function writeToDisk(wb: Workbook): Promise<void> {
+async function writeToDisk(wb: Worksheet): Promise<void> {
   const dir = await getDirectoryHandle();
   if (!dir) return;
   if (!(await ensureWritePermission(dir))) return;
@@ -134,31 +152,31 @@ async function removeFromDisk(id: string): Promise<void> {
 
 // --- public API -------------------------------------------------------------
 
-export async function listWorkbooks(): Promise<Workbook[]> {
+export async function listWorksheets(): Promise<Worksheet[]> {
   try {
-    const all = await tx<Workbook[]>(STORE_WORKBOOKS, 'readonly', (s) => s.getAll() as IDBRequest<Workbook[]>);
-    return all.filter(isWorkbook).sort((a, b) => b.createdAt - a.createdAt);
+    const all = await tx<Worksheet[]>(STORE_WORKSHEETS, 'readonly', (s) => s.getAll() as IDBRequest<Worksheet[]>);
+    return all.filter(isWorksheet).sort((a, b) => b.createdAt - a.createdAt);
   } catch {
     return [];
   }
 }
 
-export async function getWorkbook(id: string): Promise<Workbook | null> {
+export async function getWorksheet(id: string): Promise<Worksheet | null> {
   try {
-    const wb = await tx<Workbook | undefined>(
-      STORE_WORKBOOKS,
+    const wb = await tx<Worksheet | undefined>(
+      STORE_WORKSHEETS,
       'readonly',
-      (s) => s.get(id) as IDBRequest<Workbook | undefined>,
+      (s) => s.get(id) as IDBRequest<Worksheet | undefined>,
     );
-    return wb && isWorkbook(wb) ? wb : null;
+    return wb && isWorksheet(wb) ? wb : null;
   } catch {
     return null;
   }
 }
 
 /** Save to the IndexedDB cache and (when a folder was picked) to disk. */
-export async function saveWorkbook(wb: Workbook): Promise<void> {
-  await tx(STORE_WORKBOOKS, 'readwrite', (s) => s.put(wb) as IDBRequest<IDBValidKey>);
+export async function saveWorksheet(wb: Worksheet): Promise<void> {
+  await tx(STORE_WORKSHEETS, 'readwrite', (s) => s.put(wb) as IDBRequest<IDBValidKey>);
   try {
     await writeToDisk(wb);
   } catch {
@@ -166,8 +184,8 @@ export async function saveWorkbook(wb: Workbook): Promise<void> {
   }
 }
 
-export async function deleteWorkbook(id: string): Promise<void> {
-  await tx(STORE_WORKBOOKS, 'readwrite', (s) => s.delete(id) as IDBRequest<undefined>);
+export async function deleteWorksheet(id: string): Promise<void> {
+  await tx(STORE_WORKSHEETS, 'readwrite', (s) => s.delete(id) as IDBRequest<undefined>);
   try {
     await removeFromDisk(id);
   } catch {
@@ -181,9 +199,9 @@ export async function pickStorageDirectory(): Promise<string | null> {
   if (!picker) throw new Error('This browser has no File System Access API.');
   const handle = await picker({ mode: 'readwrite' });
   await tx(STORE_SETTINGS, 'readwrite', (s) => s.put(handle, DIR_KEY) as IDBRequest<IDBValidKey>);
-  // Write every known workbook so the folder is immediately useful.
-  const workbooks = await listWorkbooks();
-  for (const wb of workbooks) {
+  // Write every known worksheet so the folder is immediately useful.
+  const worksheets = await listWorksheets();
+  for (const wb of worksheets) {
     try {
       await writeToDisk(wb);
     } catch {
@@ -198,8 +216,8 @@ export async function getStoredDirectoryName(): Promise<string | null> {
   return dir ? dir.name : null;
 }
 
-/** Download a workbook as JSON (works in every browser). */
-export function exportWorkbook(wb: Workbook): void {
+/** Download a worksheet as JSON (works in every browser). */
+export function exportWorksheet(wb: Worksheet): void {
   const blob = new Blob([JSON.stringify(wb, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -211,8 +229,8 @@ export function exportWorkbook(wb: Workbook): void {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-/** Parse a workbook from a dropped / picked file and cache it. */
-export async function importWorkbookFile(file: File): Promise<Workbook> {
+/** Parse a worksheet from a dropped / picked file and cache it. */
+export async function importWorksheetFile(file: File): Promise<Worksheet> {
   const text = await file.text();
   let parsed: unknown;
   try {
@@ -220,7 +238,7 @@ export async function importWorkbookFile(file: File): Promise<Workbook> {
   } catch {
     throw new Error('That file is not valid JSON.');
   }
-  if (!isWorkbook(parsed)) throw new Error('That JSON does not look like a PID Dojo workbook.');
-  await saveWorkbook(parsed);
+  if (!isWorksheet(parsed)) throw new Error('That JSON does not look like a PID Dojo worksheet.');
+  await saveWorksheet(parsed);
   return parsed;
 }

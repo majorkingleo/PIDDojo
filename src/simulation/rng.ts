@@ -2,7 +2,7 @@ import type { RNG } from '../types';
 
 /**
  * mulberry32 — tiny, fast, deterministic 32-bit PRNG.
- * Same seed ⇒ same sequence, which is what makes workbooks reproducible.
+ * Same seed ⇒ same sequence, which is what makes worksheets reproducible.
  */
 export function mulberry32(seed: number): () => number {
   let a = seed >>> 0;

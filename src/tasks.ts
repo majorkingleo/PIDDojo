@@ -1,8 +1,8 @@
 // ---------------------------------------------------------------------------
-// Task registry, workbook creation and acceptance evaluation.
+// Task registry, worksheet creation and acceptance evaluation.
 // ---------------------------------------------------------------------------
 
-import type { Metrics, Sample, TaskDef, Workbook } from './types';
+import type { Metrics, Sample, TaskDef, Worksheet } from './types';
 import { TankPlant } from './simulation/tank';
 import { BalloonPlant } from './simulation/balloon';
 import { createRng } from './simulation/rng';
@@ -75,8 +75,8 @@ export function findTask(id: string): TaskDef | undefined {
   return TASKS.find((t) => t.id === id);
 }
 
-/** Create a workbook with a freshly randomised (but solvable) plant. */
-export function createWorkbook(task: TaskDef, seed: number): Workbook {
+/** Create a worksheet with a freshly randomised (but solvable) plant. */
+export function createWorksheet(task: TaskDef, seed: number): Worksheet {
   const rng = createRng(seed);
   const params = task.plantFactory().randomize(rng);
   return {
@@ -91,8 +91,8 @@ export function createWorkbook(task: TaskDef, seed: number): Workbook {
   };
 }
 
-/** The randomised setpoint of a workbook (falls back to the task default). */
-export function workbookSetpoint(task: TaskDef, wb: Workbook): number {
+/** The randomised setpoint of a worksheet (falls back to the task default). */
+export function worksheetSetpoint(task: TaskDef, wb: Worksheet): number {
   const sp = wb.plantParams.setpoint;
   return Number.isFinite(sp) ? sp : task.setpoint;
 }

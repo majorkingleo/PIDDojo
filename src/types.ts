@@ -17,8 +17,8 @@ export interface PlantParams {
   [key: string]: number;
 }
 
-/** A persistent workbook: one randomised plant + the user's work on it. */
-export interface Workbook {
+/** A persistent worksheet: one randomised plant + the user's work on it. */
+export interface Worksheet {
   id: string;
   taskId: string;
   phase: Phase;
@@ -74,13 +74,13 @@ export interface TaskDef {
   /** Markdown help page, one document per language. */
   help: Localized;
   acceptance: AcceptanceCriteria;
-  /** Finite step setpoint (the workbook may randomise a different one). */
+  /** Finite step setpoint (the worksheet may randomise a different one). */
   setpoint: number;
   uMin: number;
   uMax: number;
   /** Unit of the process value (used by the UI and the chart). */
   unit: string;
-  /** Starter code placed in the editor for a new workbook. */
+  /** Starter code placed in the editor for a new worksheet. */
   starterFormula: string;
 }
 

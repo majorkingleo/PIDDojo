@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// Run state + workbook helpers.
+// Run state + worksheet helpers.
 //
 // The state is intentionally tiny and *pure where it matters*: every transition
 // is a small named function so the UI never pokes at fields directly. The one
@@ -7,7 +7,7 @@
 // place (its owner is the run, nobody else reads it).
 // ---------------------------------------------------------------------------
 
-import type { RunState, RunStatus, Sample, Workbook } from './types';
+import type { RunState, RunStatus, Sample, Worksheet } from './types';
 
 /** Cap for the chart history (~200 s at one sample every 50 ms). */
 export const HISTORY_CAP = 4000;
@@ -53,7 +53,7 @@ export function isActive(state: RunState): boolean {
 }
 
 // ---------------------------------------------------------------------------
-// Workbook helpers
+// Worksheet helpers
 // ---------------------------------------------------------------------------
 
 export function newId(): string {
@@ -62,20 +62,20 @@ export function newId(): string {
   return `wb-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e9).toString(36)}`;
 }
 
-export function workbookLabel(wb: Workbook): string {
+export function worksheetLabel(wb: Worksheet): string {
   const d = new Date(wb.createdAt);
   const stamp = Number.isNaN(d.getTime()) ? '' : ` · ${d.toLocaleString()}`;
   return `${wb.taskId} · seed ${wb.seed}${stamp}`;
 }
 
 /** Structural clone with an overlap guard, used before persisting snapshots. */
-export function cloneWorkbook(wb: Workbook): Workbook {
+export function cloneWorksheet(wb: Worksheet): Worksheet {
   return {
     ...wb,
     plantParams: { ...wb.plantParams },
   };
 }
 
-export function sameWorkbook(a: Workbook | null, b: Workbook | null): boolean {
+export function sameWorksheet(a: Worksheet | null, b: Worksheet | null): boolean {
   return !!a && !!b && a.id === b.id;
 }

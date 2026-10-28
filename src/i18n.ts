@@ -139,7 +139,7 @@ const MATH_HELP_EN: HelpGroup[] = [
       { name: 'non-finite return', description: 'NaN / Infinity aborts the run' },
       {
         name: 'Math.random()',
-        description: 'works, but breaks reproducibility of a workbook',
+        description: 'works, but breaks reproducibility of a worksheet',
       },
     ],
   },
@@ -200,7 +200,7 @@ const MATH_HELP_DE: HelpGroup[] = [
       { name: 'kein endlicher Wert', description: 'NaN / Infinity bricht den Lauf ab' },
       {
         name: 'Math.random()',
-        description: 'funktioniert, macht das Workbook aber nicht reproduzierbar',
+        description: 'funktioniert, macht das Worksheet aber nicht reproduzierbar',
       },
     ],
   },

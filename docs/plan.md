@@ -22,7 +22,7 @@ task**.
 - `package.json`, `tsconfig.json`, `vite.config.ts` — strict TypeScript + Vite,
   no framework.
 - The pure-state pattern in `state.ts` (`createState` + pure update
-  functions) — the "workbook" model maps naturally onto a state object.
+  functions) — the "worksheet" model maps naturally onto a state object.
 - The `Controller` class pattern in `app.ts` (owns canvases, pointer input,
   rAF scheduling) — reused for the animated task canvas.
 - `colormaps.ts` and the dark/light theming in `styles.css` — for heat
@@ -53,23 +53,23 @@ Each task has:
 - a **formula field** where controller code can be entered
 - a **note field**
 
-### Workbook
+### Worksheet
 
 When the user starts a task, a variant of the task is created — a
-**WorkBook**. The underlying model is adapted with **random but useful**
+**Worksheet**. The underlying model is adapted with **random but useful**
 values.
 
-Each workbook stores:
+Each worksheet stores:
 
 - the task id and the generated random start values (plant parameters)
 - the controller formula
 - the user's notes
 - metadata (id, seed, createdAt)
 
-Workbooks are stored on disk so the user can reopen them later.
+Worksheets are stored on disk so the user can reopen them later.
 
 ```ts
-interface Workbook {
+interface Worksheet {
   id: string;
   taskId: string;
   seed: number;              // reproducible randomization
@@ -114,7 +114,7 @@ interface Plant {
   step(u: number, dt: number): void;   // u = control signal
   measurement(): number;               // sensor output (PV)
   render(ctx: CanvasRenderingContext2D, w: number, h: number): void;
-  randomize(rng: RNG): unknown;        // generate workbook variant params
+  randomize(rng: RNG): unknown;        // generate worksheet variant params
 }
 ```
 
@@ -188,8 +188,8 @@ interface AcceptanceCriteria {
 
 ## Randomization
 
-- Randomization must be **seeded** so a workbook is reproducible.
-- The seed is stored in the workbook.
+- Randomization must be **seeded** so a worksheet is reproducible.
+- The seed is stored in the worksheet.
 - "Random but useful" = randomizing plant parameters (tank volume, heat loss,
   balloon buoyancy, ...) within ranges that keep the problem solvable for the
   current phase.
@@ -205,11 +205,11 @@ interface RNG {
 
 ## Persistence
 
-Workbooks are stored on disk and can be reopened later.
+Worksheets are stored on disk and can be reopened later.
 
 - **File System Access API** (Chromium): real read/write to a user-chosen
   folder — primary storage.
-- **IndexedDB** as an automatic cache/fallback so workbooks survive page
+- **IndexedDB** as an automatic cache/fallback so worksheets survive page
   reloads without re-picking the folder.
 
 ---
@@ -220,7 +220,7 @@ Workbooks are stored on disk and can be reopened later.
 pid-dojo/
   src/
     main.ts            # UI wiring
-    state.ts           # app + workbook state (pure functions)
+    state.ts           # app + worksheet state (pure functions)
     app.ts             # controller / rAF loop
     i18n.ts            # EN/DE help texts + math reference
     simulation/

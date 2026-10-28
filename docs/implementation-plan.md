@@ -8,7 +8,7 @@ Phase 1 scope:
 - **P controllers only** (proportional gain, steady-state error is allowed).
 - Two tasks: **heating a tank** and **flying a balloon**.
 - Full infrastructure: animation, chart, formula editor with syntax
-  highlighting + math help box, notes, help page, workbook persistence.
+  highlighting + math help box, notes, help page, worksheet persistence.
 
 Read `plan.md` first for the overall vision; this document adds the concrete
 technical decisions and a file-by-file breakdown.
@@ -51,7 +51,7 @@ pid-dojo/
   src/
     main.ts            # DOM wiring, app bootstrap
     app.ts             # DojoController: canvas, rAF loop, orchestration
-    state.ts           # app + workbook + run state (pure functions)
+    state.ts           # app + worksheet + run state (pure functions)
     types.ts           # shared types
     i18n.ts            # EN/DE catalogue: task help pages + math reference
     styles.css         # layout + theme (extend field-map styles)
@@ -151,8 +151,8 @@ Define all shared types here:
 ```ts
 export type Phase = 1 | 2 | 3;
 
-/** Persistent workbook, stored to disk. */
-export interface Workbook {
+/** Persistent worksheet, stored to disk. */
+export interface Worksheet {
   id: string;              // uuid
   taskId: string;          // 'tank' | 'balloon'
   phase: Phase;
@@ -220,7 +220,7 @@ export interface RNG {
 }
 
 export interface Plant {
-  /** Set params from a workbook and reset to initial conditions. */
+  /** Set params from a worksheet and reset to initial conditions. */
   configure(params: PlantParams, setpoint: number): void;
   reset(): void;
   /** Advance physics by dt seconds with control signal u (already clamped). */
@@ -256,7 +256,7 @@ export function mulberry32(seed: number): () => number {
 
 Wrap it in a class or factory that implements the `RNG` interface
 (`next()` + `nextRange(min, max)`). **All plant randomization must use this
-RNG**, never `Math.random()`, so workbooks are reproducible.
+RNG**, never `Math.random()`, so worksheets are reproducible.
 
 ---
 
@@ -485,9 +485,9 @@ Run lifecycle:
 
 - **Start**: compile the formula; reset plant + `mem` + history; set status
   `running`.
-- **Reset**: re-run from initial conditions with the same workbook (keep
+- **Reset**: re-run from initial conditions with the same worksheet (keep
   formula/params).
-- **New variant**: generate new seed + params → new `Workbook`.
+- **New variant**: generate new seed + params → new `Worksheet`.
 - **Stop**: freeze, keep history.
 - On error (compile/runtime): status `error`, show message.
 
@@ -497,29 +497,30 @@ Run lifecycle:
 
 Two layers:
 
-1. **IndexedDB** — database `pid-dojo`, object store `workbooks` (keyPath
-   `id`). Always used; caches the workbook list and autosaves notes/formula.
+1. **IndexedDB** — database `pid-dojo`, object store `worksheets` (keyPath
+   `id`; renamed from `workbooks` in v2, which copies the old rows once).
+   Always used; caches the worksheet list and autosaves notes/formula.
 2. **File System Access API** — primary "disk" storage:
    - `pickDirectory()` → `showDirectoryPicker()` (persist the handle in
      IndexedDB so it can be re-used silently).
-   - Save workbook as `<id>.json` in the picked directory
+   - Save worksheet as `<id>.json` in the picked directory
      (`getFileHandle(id + '.json', { create: true })` + `createWritable`).
    - Load: list `*.json` in the directory, or open a single file with
      `showOpenFilePicker`.
    - Detect availability (`'showDirectoryPicker' in window`); if unavailable,
      fall back to IndexedDB only + a manual **Export / Import JSON** button.
 
-Also add a **Export JSON** button always available (downloads a workbook
+Also add a **Export JSON** button always available (downloads a worksheet
 file), for browsers without the File System Access API.
 
 API surface:
 
 ```ts
-export async function listWorkbooks(): Promise<Workbook[]>;
-export async function saveWorkbook(wb: Workbook): Promise<void>;
-export async function deleteWorkbook(id: string): Promise<void>;
+export async function listWorksheets(): Promise<Worksheet[]>;
+export async function saveWorksheet(wb: Worksheet): Promise<void>;
+export async function deleteWorksheet(id: string): Promise<void>;
 export async function pickStorageDirectory(): Promise<void>;
-export function exportWorkbook(wb: Workbook): void;
+export function exportWorksheet(wb: Worksheet): void;
 ```
 
 ---
@@ -530,7 +531,7 @@ Export:
 
 ```ts
 export const TASKS: TaskDef[] = [tankTask(), balloonTask()];
-export function createWorkbook(task: TaskDef, seed: number): Workbook;
+export function createWorksheet(task: TaskDef, seed: number): Worksheet;
 export function evaluateRun(
   task: TaskDef,
   history: Sample[],
@@ -582,7 +583,7 @@ Single-page layout, CSS grid:
 
 ```
 +-----------------------------------------------------------+
-| Header: PID Dojo | Task | Workbook | Lang | New variant   |
+| Header: PID Dojo | Task | Worksheet | Lang | New variant  |
 +----------------+------------------+-----------------------+
 | Task canvas    | Chart (uPlot)    | Help panel (marked)   |
 | (animation)    | sp/pv/u          | (toggleable, EN/DE)   |
@@ -596,7 +597,7 @@ Single-page layout, CSS grid:
 `main.ts` responsibilities:
 
 - Render the task list (from `TASKS`), phase filter.
-- On "start task": create/load workbook, build the plant, start the run.
+- On "start task": create/load worksheet, build the plant, start the run.
 - Wire buttons (Run / Reset / Stop / New variant / Save / Export / Import).
 - Render the help panel with `marked.parse(help)`.
 - Show metrics + pass/fail badge after a run finishes.
@@ -641,8 +642,8 @@ theme choice in `localStorage`.
       in the UI, not the console only.
 - [x] Math help box lists functions and injected variables.
 - [x] Notes and formula autosave and survive a reload (IndexedDB), and the
-      last opened workbook is restored.
-- [x] A workbook can be saved to disk (File System Access API) and reopened;
+      last opened worksheet is restored.
+- [x] A worksheet can be saved to disk (File System Access API) and reopened;
       re-running with the same seed reproduces the same plant.
       *The folder picker is a native dialog and cannot be automated — the
       write path is exercised best-effort on every save and needs one manual
@@ -679,10 +680,11 @@ Everything above is implemented; these are the deliberate differences.
 | 4 | Chart on a single y-axis | `u` on a secondary right axis (0…1) | on one axis `u` is an unreadable flat line; plan §15 already flagged this |
 | 5 | uPlot's own legend | static legend in the panel head, uPlot legend disabled | uPlot's legend is clipped by the fixed-height chart host |
 | 6 | `basicSetup` from the `codemirror` meta package | assembled from the individual `@codemirror/*` packages | avoids an extra dependency; only the extensions we need are included |
-| 7 | `Workbook`/`TaskDef` per §4 | added `TaskDef.unit` and `TaskDef.starterFormula` | the chart axis, metric labels and editor template all need them |
+| 7 | `Worksheet`/`TaskDef` per §4 | added `TaskDef.unit` and `TaskDef.starterFormula` | the chart axis, metric labels and editor template all need them |
 | 8 | Run for `maxRunTime`, then evaluate | stop early after `\|e\| ≤ maxSteadyStateError` holds for 5 s | a settled run should report immediately instead of idling at the wall |
 | 9 | §15: "tune thresholds after manual testing" | thresholds unchanged, validated by `tools/tune.mjs` (500 seeds/task, all pass) | the starter `Kp` values now pass on every seed, so the ranges — not the thresholds — were adjusted |
 | 10 | `overshootPct = 100·(max(pv) − sp)/sp` | clamped at 0 for values below the setpoint | avoids "-0.1 %" noise in the UI |
+| 11 | "workbook" as the unit of work | renamed to **worksheet** everywhere: UI label, `Worksheet` type, `saveWorksheet()`/`listWorksheets()`/…, IndexedDB store `worksheets`, `pid-dojo-worksheet` key | consistent naming; DB v2 copies rows from the old `workbooks` store once, so existing local data survives |
 
 Known limitation: `File System Access API` writes only run when a folder has
 been picked and permission is still granted; silently skipped otherwise
@@ -707,9 +709,9 @@ Translated:
 
 Deliberately **not** translated: the formula editor and its starter code,
 the metric names (settle / overshoot / steady-state error / IAE), the
-PASS/FAIL verdict, and the task / workbook controls. Keeping the tuning
+PASS/FAIL verdict, and the task / worksheet controls. Keeping the tuning
 vocabulary in one language means `Kp` and "settle time" always mean the same
-thing, and switching the reader language never touches a workbook.
+thing, and switching the reader language never touches a worksheet.
 
 ### Implementation
 
@@ -724,7 +726,7 @@ thing, and switching the reader language never touches a workbook.
 
 Language resolution order: stored choice → `navigator.language(s)` → English.
 Changing the language re-renders only the two help surfaces; the simulation,
-the editor content and the workbook are untouched.
+the editor content and the worksheet are untouched.
 
 ### Adding a language
 
@@ -737,7 +739,7 @@ the editor content and the workbook are untouched.
 Checklist:
 
 - [x] `#lang-select` switches help page + math box without touching the
-      workbook or the running simulation.
+      worksheet or the running simulation.
 - [x] Choice survives a reload (`localStorage`), `<html lang>` follows.
 - [x] Both tasks and all four math groups have German text.
 - [x] German help keeps the formulas, tables and acceptance numbers intact
