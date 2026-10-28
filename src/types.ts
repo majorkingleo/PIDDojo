@@ -20,6 +20,8 @@ export interface PlantParams {
 /** A persistent worksheet: one randomised plant + the user's work on it. */
 export interface Worksheet {
   id: string;
+  /** User-chosen label. Empty means "fall back to the generated label". */
+  name: string;
   taskId: string;
   phase: Phase;
   seed: number;

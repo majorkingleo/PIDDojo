@@ -12,7 +12,7 @@ import { LANGS, UI_TEXT, detectLang, isLang, saveLang } from './i18n';
 import * as store from './persistence';
 import { randomSeed } from './simulation/rng';
 import { TASKS, createWorksheet, findTask } from './tasks';
-import { cloneWorksheet } from './state';
+import { cloneWorksheet, cleanWorksheetName, worksheetLabel } from './state';
 import type { Lang, RunStatus, TaskDef, Worksheet } from './types';
 
 const THEME_KEY = 'pid-dojo-theme';
@@ -28,6 +28,7 @@ function el<T extends HTMLElement>(id: string): T {
 const ui = {
   taskSelect: el<HTMLSelectElement>('task-select'),
   worksheetSelect: el<HTMLSelectElement>('worksheet-select'),
+  worksheetName: el<HTMLInputElement>('worksheet-name'),
   langSelect: el<HTMLSelectElement>('lang-select'),
   scene: el<HTMLCanvasElement>('scene'),
   sceneTitle: el<HTMLElement>('scene-title'),
@@ -220,12 +221,20 @@ async function refreshWorksheetList(): Promise<void> {
     if (wb.taskId !== currentTask.id) continue;
     const option = document.createElement('option');
     option.value = wb.id;
-    option.textContent = `seed ${wb.seed} · ${new Date(wb.createdAt).toLocaleString()}`;
+    option.textContent = worksheetLabel(wb);
     ui.worksheetSelect.append(option);
     count++;
   }
   if (count === 0) placeholder.textContent = '— no worksheets yet —';
   ui.worksheetSelect.value = worksheet?.id ?? '';
+}
+
+/** Keep the selected dropdown entry in sync while the user types a name. */
+function updateSelectedWorksheetLabel(): void {
+  if (!worksheet) return;
+  const id = worksheet.id;
+  const option = Array.from(ui.worksheetSelect.options).find((o) => o.value === id);
+  if (option) option.textContent = worksheetLabel(worksheet);
 }
 
 async function loadWorksheet(wb: Worksheet): Promise<void> {
@@ -240,6 +249,8 @@ async function loadWorksheet(wb: Worksheet): Promise<void> {
   ui.taskSelect.value = task.id;
   ui.sceneTitle.textContent = task.title;
   renderTaskHelp();
+
+  ui.worksheetName.value = wb.name;
 
   const description = task.plantFactory().describe(wb.plantParams);
   ui.plantDesc.textContent = description.join(' · ');
@@ -383,6 +394,23 @@ async function main(): Promise<void> {
   ui.notes.addEventListener('input', () => {
     if (!worksheet) return;
     worksheet.notes = ui.notes.value;
+    scheduleSave();
+  });
+
+  ui.worksheetName.addEventListener('input', () => {
+    if (!worksheet) return;
+    worksheet.name = ui.worksheetName.value;
+    updateSelectedWorksheetLabel();
+    scheduleSave();
+  });
+
+  // Tidy the name (single spaces, trimmed) once the user leaves the field.
+  ui.worksheetName.addEventListener('change', () => {
+    if (!worksheet) return;
+    const clean = cleanWorksheetName(worksheet.name);
+    worksheet.name = clean;
+    ui.worksheetName.value = clean;
+    updateSelectedWorksheetLabel();
     scheduleSave();
   });
 

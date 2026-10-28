@@ -31,6 +31,9 @@ npm run preview     # serve the production build
 ## Using the dojo
 
 - **Task / Worksheet** — pick a scenario, or reopen one of your saved worksheets.
+- **Worksheet name** — the text field next to the worksheet selector gives the
+  current worksheet a custom name (saved automatically, shown in the dropdown
+  as `name · seed`, and used for exported file names).
 - **Lang** — switches the help page and the math/variable reference between
   English and German (stored, so it survives a reload). Code, metrics and
   verdict intentionally stay in English.

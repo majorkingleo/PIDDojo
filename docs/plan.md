@@ -62,6 +62,7 @@ values.
 Each worksheet stores:
 
 - the task id and the generated random start values (plant parameters)
+- a **name** the user can give the worksheet
 - the controller formula
 - the user's notes
 - metadata (id, seed, createdAt)
@@ -71,6 +72,7 @@ Worksheets are stored on disk so the user can reopen them later.
 ```ts
 interface Worksheet {
   id: string;
+  name: string;              // user-chosen label, may be empty
   taskId: string;
   seed: number;              // reproducible randomization
   plantParams: unknown;

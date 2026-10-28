@@ -154,6 +154,7 @@ export type Phase = 1 | 2 | 3;
 /** Persistent worksheet, stored to disk. */
 export interface Worksheet {
   id: string;              // uuid
+  name: string;            // user-chosen label ('' = generated label)
   taskId: string;          // 'tank' | 'balloon'
   phase: Phase;
   seed: number;            // reproducible randomization
@@ -583,7 +584,7 @@ Single-page layout, CSS grid:
 
 ```
 +-----------------------------------------------------------+
-| Header: PID Dojo | Task | Worksheet | Lang | New variant  |
+| Header: PID Dojo | Task | Worksheet + name | Lang | New variant |
 +----------------+------------------+-----------------------+
 | Task canvas    | Chart (uPlot)    | Help panel (marked)   |
 | (animation)    | sp/pv/u          | (toggleable, EN/DE)   |
@@ -602,6 +603,8 @@ Single-page layout, CSS grid:
 - Render the help panel with `marked.parse(help)`.
 - Show metrics + pass/fail badge after a run finishes.
 - Autosave notes + formula to IndexedDB on input (debounced).
+- Edit the worksheet name in the header; it is autosaved with the rest of the
+  worksheet and drives the dropdown label and the export filename (§16, row 12).
 - Re-render the help panel + math box when the language changes (§17).
 
 Theme: reuse the dark/light theming from `field-map` (`styles.css`), persist
@@ -643,6 +646,9 @@ theme choice in `localStorage`.
 - [x] Math help box lists functions and injected variables.
 - [x] Notes and formula autosave and survive a reload (IndexedDB), and the
       last opened worksheet is restored.
+- [x] A worksheet can be given a custom name; it is shown in the worksheet
+      dropdown (`name · seed`), autosaves, survives a reload and is used for
+      the export filename.
 - [x] A worksheet can be saved to disk (File System Access API) and reopened;
       re-running with the same seed reproduces the same plant.
       *The folder picker is a native dialog and cannot be automated — the
@@ -685,6 +691,7 @@ Everything above is implemented; these are the deliberate differences.
 | 9 | §15: "tune thresholds after manual testing" | thresholds unchanged, validated by `tools/tune.mjs` (500 seeds/task, all pass) | the starter `Kp` values now pass on every seed, so the ranges — not the thresholds — were adjusted |
 | 10 | `overshootPct = 100·(max(pv) − sp)/sp` | clamped at 0 for values below the setpoint | avoids "-0.1 %" noise in the UI |
 | 11 | "workbook" as the unit of work | renamed to **worksheet** everywhere: UI label, `Worksheet` type, `saveWorksheet()`/`listWorksheets()`/…, IndexedDB store `worksheets`, `pid-dojo-worksheet` key | consistent naming; DB v2 copies rows from the old `workbooks` store once, so existing local data survives |
+| 12 | worksheets were only identifiable by seed/date | added `Worksheet.name` + a name field in the header; empty name falls back to `seed … · date`, export files use a slug of the name | lets the user tell variants apart; stored worksheets without a name are normalised to `''` on load |
 
 Known limitation: `File System Access API` writes only run when a folder has
 been picked and permission is still granted; silently skipped otherwise

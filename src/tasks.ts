@@ -81,6 +81,7 @@ export function createWorksheet(task: TaskDef, seed: number): Worksheet {
   const params = task.plantFactory().randomize(rng);
   return {
     id: newId(),
+    name: '',
     taskId: task.id,
     phase: task.phase,
     seed,

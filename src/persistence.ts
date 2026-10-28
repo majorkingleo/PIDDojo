@@ -96,6 +96,11 @@ function isWorksheet(value: unknown): value is Worksheet {
   );
 }
 
+/** Worksheets stored before the name field existed come back without one. */
+function withDefaults(wb: Worksheet): Worksheet {
+  return { ...wb, name: typeof wb.name === 'string' ? wb.name : '' };
+}
+
 // --- disk helpers -----------------------------------------------------------
 
 async function getDirectoryHandle(): Promise<FileSystemDirectoryHandle | null> {
@@ -155,7 +160,7 @@ async function removeFromDisk(id: string): Promise<void> {
 export async function listWorksheets(): Promise<Worksheet[]> {
   try {
     const all = await tx<Worksheet[]>(STORE_WORKSHEETS, 'readonly', (s) => s.getAll() as IDBRequest<Worksheet[]>);
-    return all.filter(isWorksheet).sort((a, b) => b.createdAt - a.createdAt);
+    return all.filter(isWorksheet).map(withDefaults).sort((a, b) => b.createdAt - a.createdAt);
   } catch {
     return [];
   }
@@ -168,7 +173,7 @@ export async function getWorksheet(id: string): Promise<Worksheet | null> {
       'readonly',
       (s) => s.get(id) as IDBRequest<Worksheet | undefined>,
     );
-    return wb && isWorksheet(wb) ? wb : null;
+    return wb && isWorksheet(wb) ? withDefaults(wb) : null;
   } catch {
     return null;
   }
@@ -222,7 +227,12 @@ export function exportWorksheet(wb: Worksheet): void {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `${wb.taskId}-${wb.id}.json`;
+  const slug = wb.name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 40);
+  a.download = `${slug || wb.taskId}-${wb.id.slice(0, 8)}.json`;
   document.body.append(a);
   a.click();
   a.remove();
@@ -239,6 +249,7 @@ export async function importWorksheetFile(file: File): Promise<Worksheet> {
     throw new Error('That file is not valid JSON.');
   }
   if (!isWorksheet(parsed)) throw new Error('That JSON does not look like a PID Dojo worksheet.');
-  await saveWorksheet(parsed);
-  return parsed;
+  const worksheet = withDefaults(parsed);
+  await saveWorksheet(worksheet);
+  return worksheet;
 }

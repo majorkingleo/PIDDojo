@@ -62,10 +62,19 @@ export function newId(): string {
   return `wb-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e9).toString(36)}`;
 }
 
+/** Normalise a user-supplied name (single spaces, no leading/trailing space). */
+export function cleanWorksheetName(raw: string | undefined): string {
+  return (raw ?? '').replace(/\s+/g, ' ').trim().slice(0, 60);
+}
+
+/** Dropdown label: the custom name when set, else a generated one. */
 export function worksheetLabel(wb: Worksheet): string {
+  const name = cleanWorksheetName(wb.name);
+  if (name) return `${name} · seed ${wb.seed}`;
+
   const d = new Date(wb.createdAt);
   const stamp = Number.isNaN(d.getTime()) ? '' : ` · ${d.toLocaleString()}`;
-  return `${wb.taskId} · seed ${wb.seed}${stamp}`;
+  return `seed ${wb.seed}${stamp}`;
 }
 
 /** Structural clone with an overlap guard, used before persisting snapshots. */
