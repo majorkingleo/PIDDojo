@@ -1,0 +1,564 @@
+/* ---------------------------------------------------------------------------
+   PID Dojo — layout + dark/light theming.
+   --------------------------------------------------------------------------- */
+
+:root,
+[data-theme='dark'] {
+  --bg: #080c14;
+  --panel: #111a2b;
+  --panel-2: #0d1523;
+  --text: #e6ebf5;
+  --muted: #8b96ad;
+  --line: rgba(255, 255, 255, 0.1);
+  --line-strong: rgba(255, 255, 255, 0.2);
+  --accent: #5cc8ff;
+  --accent-2: #ffb454;
+  --ok: #41d18b;
+  --bad: #ff6b6b;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  color-scheme: dark;
+}
+
+[data-theme='light'] {
+  --bg: #eef2f8;
+  --panel: #ffffff;
+  --panel-2: #f7f9fd;
+  --text: #1c2333;
+  --muted: #5b667c;
+  --line: rgba(20, 30, 60, 0.12);
+  --line-strong: rgba(20, 30, 60, 0.22);
+  --accent: #1f6fd0;
+  --accent-2: #c46d00;
+  --ok: #12895a;
+  --bad: #c22b2b;
+  --shadow: 0 10px 24px rgba(20, 30, 60, 0.1);
+  color-scheme: light;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.5 ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+#app {
+  display: grid;
+  grid-template-rows: auto minmax(280px, 1fr) auto;
+  gap: 12px;
+  padding: 12px;
+  height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
+}
+
+/* -- top bar ---------------------------------------------------------------- */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-right: auto;
+}
+
+.brand h1 {
+  margin: 0;
+  font-size: 17px;
+  letter-spacing: 0.2px;
+}
+
+.brand p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.logo {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: linear-gradient(140deg, var(--accent), var(--accent-2));
+  color: #08101c;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.topbar-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.topbar-group label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+select,
+textarea,
+input[type='file'] {
+  font: inherit;
+  color: var(--text);
+  background: var(--panel-2);
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  padding: 6px 8px;
+}
+
+select:focus-visible,
+textarea:focus-visible,
+.btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* -- buttons ---------------------------------------------------------------- */
+
+.btn {
+  font: inherit;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--panel-2);
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  padding: 6px 11px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.05s;
+}
+
+.btn:hover {
+  background: color-mix(in srgb, var(--panel-2) 70%, var(--accent) 30%);
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn.primary {
+  background: var(--accent);
+  border-color: transparent;
+  color: #07101d;
+  font-weight: 600;
+}
+
+.btn.ghost {
+  background: transparent;
+}
+
+.btn.small {
+  font-size: 12px;
+  padding: 3px 8px;
+}
+
+/* -- panels ----------------------------------------------------------------- */
+
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(280px, 1.05fr) minmax(300px, 1.25fr) minmax(240px, 0.85fr);
+  gap: 12px;
+  min-height: 0;
+}
+
+.bottom {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 12px;
+  min-height: 0;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.panel-head h2 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+#chart-legend {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.legend-item i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.canvas-wrap {
+  position: relative;
+  flex: 1;
+  min-height: 180px;
+}
+
+.canvas-wrap canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.chart-host {
+  position: relative;
+  flex: 1;
+  min-height: 200px;
+  padding: 4px 4px 0;
+  overflow: hidden;
+}
+
+/* uPlot sets an inline pixel size on its root; absolute positioning keeps that
+   from inflating the panel's min-content height (which would break the grid). */
+.chart-host .uplot {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  max-width: 100%;
+}
+
+/* -- help / markdown -------------------------------------------------------- */
+
+.help-panel.collapsed .markdown {
+  display: none;
+}
+
+.markdown {
+  overflow: auto;
+  padding: 4px 14px 14px;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.markdown h2 {
+  font-size: 15px;
+  margin: 14px 0 6px;
+}
+
+.markdown h3 {
+  font-size: 13px;
+  margin: 12px 0 4px;
+  color: var(--accent);
+}
+
+.markdown code {
+  font-family: ui-monospace, 'JetBrains Mono', 'Cascadia Code', monospace;
+  font-size: 12px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 1px 4px;
+}
+
+.markdown pre {
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 9px 11px;
+  overflow: auto;
+}
+
+.markdown pre code {
+  background: none;
+  border: 0;
+  padding: 0;
+}
+
+.markdown table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 12px;
+}
+
+.markdown th,
+.markdown td {
+  border-bottom: 1px solid var(--line);
+  padding: 4px 6px;
+  text-align: left;
+}
+
+.markdown th:first-child,
+.markdown td:first-child {
+  white-space: nowrap;
+  width: 1%;
+}
+
+.markdown td code {
+  white-space: nowrap;
+}
+
+.markdown ul {
+  padding-left: 18px;
+}
+
+/* -- editor ----------------------------------------------------------------- */
+
+.editor-host {
+  flex: 1;
+  min-height: 170px;
+  overflow: auto;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel-2);
+}
+
+.editor-host .cm-editor {
+  height: 100%;
+  min-height: 170px;
+}
+
+.editor-host .cm-editor.cm-focused {
+  outline: none;
+}
+
+.editor-host .cm-scroller {
+  font-family: ui-monospace, 'JetBrains Mono', 'Cascadia Code', monospace;
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+
+.error-box {
+  margin: 8px 12px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bad) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--bad) 55%, transparent);
+  color: var(--text);
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* -- metrics ---------------------------------------------------------------- */
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  padding: 10px 12px;
+}
+
+.metric {
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 6px 9px;
+}
+
+.metric span {
+  display: block;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--muted);
+}
+
+.metric strong {
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+
+.metric strong.ok {
+  color: var(--ok);
+}
+
+.metric strong.bad {
+  color: var(--bad);
+}
+
+/* -- badges ----------------------------------------------------------------- */
+
+.badge {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  background: var(--panel-2);
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.badge.muted {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 500;
+  max-width: 46ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.badge.running {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+.badge.settled {
+  color: var(--ok);
+  border-color: color-mix(in srgb, var(--ok) 55%, transparent);
+}
+
+.badge.failed,
+.badge.error {
+  color: var(--bad);
+  border-color: color-mix(in srgb, var(--bad) 55%, transparent);
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.small {
+  font-size: 11px;
+}
+
+/* -- side stack (math + notes) ---------------------------------------------- */
+
+.side-stack {
+  display: grid;
+  grid-template-rows: minmax(0, 1.35fr) minmax(0, 1fr);
+  gap: 12px;
+  min-height: 0;
+}
+
+.math-help {
+  overflow: auto;
+  padding: 8px 12px 12px;
+  font-size: 12px;
+}
+
+.math-group + .math-group {
+  margin-top: 10px;
+}
+
+.math-group h3 {
+  margin: 0 0 4px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+}
+
+.math-group dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 2px 8px;
+}
+
+.math-group dt {
+  font-family: ui-monospace, 'JetBrains Mono', monospace;
+  font-size: 11.5px;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.math-group dd {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+.notes-panel textarea {
+  flex: 1;
+  resize: none;
+  margin: 8px 10px 10px;
+  width: calc(100% - 20px);
+  min-height: 90px;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+/* -- responsive ------------------------------------------------------------- */
+
+@media (max-width: 1180px) {
+  #app {
+    height: auto;
+    max-height: none;
+    overflow: auto;
+    grid-template-rows: auto auto auto;
+  }
+
+  .workspace,
+  .bottom {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .workspace .scene-panel {
+    min-height: 300px;
+  }
+
+  .chart-panel {
+    min-height: 280px;
+  }
+
+  .metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
