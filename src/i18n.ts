@@ -271,6 +271,68 @@ offset = u_hold / Kp
 That offset is **allowed** — keep it below the tolerance shown in the
 acceptance criteria. The integral term that removes it comes in Phase 2.
 
+### Tuning Kp
+
+The scene header lists the plant values you need (\`P\`, \`k_loss\`, \`C\`,
+\`T_amb\`, setpoint). Three derived numbers do all the work:
+
+\`\`\`
+K  = P / k_loss          # °C per unit duty — steady-state gain
+τ  = C / k_loss          # s — open-loop time constant
+ΔT = setpoint − T_amb    # °C — the step to cover
+\`\`\`
+
+**Model-based (direct synthesis).** Pick the closed-loop time constant you
+want, then
+
+\`\`\`
+Kp = (τ/τ_cl − 1) / K
+\`\`\`
+
+and the loop approaches the setpoint with exactly that τ_cl. λ-tuning / IMC
+writes the same setting as \`Kp = τ/(K·λ)\` with λ ≈ τ_cl; for a first-order
+plant without dead time the two are equivalent.
+
+**The steady-state error sets the floor.** With P only, the tank always stops
+short of the setpoint:
+
+\`\`\`
+e_ss = ΔT / (1 + Kp·K)      →      Kp ≥ (ΔT / 1.5 − 1) / K
+\`\`\`
+
+(1.5 °C is \`maxSteadyStateError\`.) On the randomised worksheets this floor
+lands around **0.25 … 0.45**, well below the starter value of 4 — and beyond
+it a larger gain hardly changes the offset any more.
+
+**Saturation sets the settle time.** While \`e > 1/Kp\` the heater runs at 100 %
+and the loop is open:
+
+\`\`\`
+T(t) = T_amb + K·(1 − e^(−t/τ))
+\`\`\`
+
+The controller only takes over at \`e = 1/Kp\`, so most of the settle time is
+simply *time spent at full power*:
+
+\`\`\`
+t_sat ≈ τ · ln( K / (K − ΔT + 1/Kp) )
+\`\`\`
+
+Typical worksheet: \`P = 1200 W\`, \`k_loss = 15 W/°C\`, \`C = 200 J/°C\`,
+\`T_amb = 20 °C\`, setpoint 65 °C → \`K = 80 °C\`, \`τ = 13.3 s\`, \`ΔT = 45 °C\`.
+Floor: \`Kp ≥ 0.36\`. With the starter \`Kp = 4\` the full-power phase lasts
+\`t_sat ≈ 11 s\`; after that the error only has to stay inside the band for
+5 s and the run ends.
+
+**Ziegler–Nichols and Cohen–Coon do not apply here.** Both need a dead time θ
+from the tangent construction; a pure first-order plant has θ = 0, so their P
+settings (ZN: \`Kp = τ/(K·θ)\`, Cohen–Coon: \`Kp = (1.35·τ/θ + 0.27)/K\`) go to
+infinity. They only become useful once sensor or actuator delay is added.
+
+**Or tune empirically.** Doubling \`Kp\` roughly halves the offset
+(\`e_ss ∝ 1/(1 + Kp·K)\`), so raise it until the steady-state error is below
+1.5 °C — beyond that point saturation, not gain, sets the pace.
+
 ### Acceptance
 
 - settle time ≤ **30 s**
@@ -318,6 +380,69 @@ offset = u_hold / Kp
 
 Dieser Offset ist **erlaubt** — halte ihn unter der Toleranz aus den
 Abnahmekriterien. Der I-Anteil, der ihn beseitigt, kommt in Phase 2.
+
+### Kp dimensionieren
+
+Im Szenen-Kopf stehen die Streckenwerte (\`P\`, \`k_loss\`, \`C\`, \`T_amb\`,
+Sollwert). Drei abgeleitete Größen reichen für die Auslegung:
+
+\`\`\`
+K  = P / k_loss          # °C pro Tastgrad — Verstärkung
+τ  = C / k_loss          # s — Zeitkonstante der Strecke
+ΔT = Sollwert − T_amb    # °C — zu überwindende Stufe
+\`\`\`
+
+**Modellbasiert (direkte Synthese).** Zeitkonstante des geschlossenen Kreises
+vorgeben, dann ist
+
+\`\`\`
+Kp = (τ/τ_cl − 1) / K
+\`\`\`
+
+und der Kreis nähert sich dem Sollwert mit genau diesem τ_cl. λ-Tuning / IMC
+schreibt dieselbe Einstellung als \`Kp = τ/(K·λ)\` mit λ ≈ τ_cl; bei einer
+Strecke erster Ordnung ohne Totzeit ist das dasselbe.
+
+**Die bleibende Regelabweichung setzt die Untergrenze.** Mit reinem P bleibt
+der Tank immer unter dem Sollwert:
+
+\`\`\`
+e_ss = ΔT / (1 + Kp·K)      →      Kp ≥ (ΔT / 1,5 − 1) / K
+\`\`\`
+
+(1,5 °C ist \`maxSteadyStateError\`.) Auf den zufälligen Worksheets liegt diese
+Grenze bei etwa **0,25 … 0,45**, also deutlich unter dem Startwert 4 — und
+jenseits davon ändert ein größerer Gain den Offset kaum noch.
+
+**Die Sättigung bestimmt die Einschwingzeit.** Solange \`e > 1/Kp\` ist, läuft
+die Heizung auf 100 % und der Kreis ist offen:
+
+\`\`\`
+T(t) = T_amb + K·(1 − e^(−t/τ))
+\`\`\`
+
+Erst bei \`e = 1/Kp\` übernimmt der Regler. Die Einschwingzeit ist damit vor
+allem *die Zeit mit voller Leistung*:
+
+\`\`\`
+t_sat ≈ τ · ln( K / (K − ΔT + 1/Kp) )
+\`\`\`
+
+Typisches Worksheet: \`P = 1200 W\`, \`k_loss = 15 W/°C\`, \`C = 200 J/°C\`,
+\`T_amb = 20 °C\`, Sollwert 65 °C → \`K = 80 °C\`, \`τ = 13,3 s\`, \`ΔT = 45 °C\`.
+Grenze: \`Kp ≥ 0,36\`. Mit dem Startwert \`Kp = 4\` dauert die Vollgasphase
+\`t_sat ≈ 11 s\`; danach muss der Fehler nur noch 5 s im Band bleiben, dann
+endet der Lauf.
+
+**Ziegler–Nichols und Cohen–Coon greifen hier nicht.** Beide brauchen eine
+Totzeit θ aus der Wendetangente; eine reine Strecke erster Ordnung hat θ = 0,
+womit ihre P-Einstellungen (ZN: \`Kp = τ/(K·θ)\`, Cohen–Coon:
+\`Kp = (1,35·τ/θ + 0,27)/K\`) gegen unendlich gehen. Sinnvoll werden sie erst
+mit Sensor- oder Stellgliedverzögerung.
+
+**Oder empirisch.** Verdoppeln von \`Kp\` halbiert den Offset ungefähr
+(\`e_ss ∝ 1/(1 + Kp·K)\`); erhöhe ihn also, bis die bleibende Abweichung unter
+1,5 °C liegt — danach bestimmt die Sättigung das Tempo, nicht der Gain.
 
 ### Abnahmekriterien
 
