@@ -1,0 +1,115 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      // npm run dev -- Vite dev server with HMR on http://localhost:5173
+      "label": "dev: pid-dojo",
+      "type": "shell",
+      "command": "npm run dev",
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "vite",
+        "pattern": { "regexp": "^$" },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "\\s*VITE v",
+          "endsPattern": "Local:\\s+http://localhost"
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true,
+        "group": "pid-dojo-tasks"
+      },
+      "detail": "Vite dev server with HMR (index.html + src/)."
+    },
+    {
+      // Vite does not typecheck, so run tsc in watch mode alongside "dev".
+      "label": "typecheck: watch",
+      "type": "shell",
+      "command": "npx tsc --noEmit --watch --preserveWatchOutput",
+      "isBackground": true,
+      "problemMatcher": ["$tsc-watch"],
+      "presentation": {
+        "reveal": "silent",
+        "panel": "dedicated",
+        "clear": false,
+        "group": "pid-dojo-tasks"
+      },
+      "detail": "Continuous type checking of src/ (strict, noUnusedLocals, etc.)."
+    },
+    {
+      // One-shot check, useful for CI-style verification.
+      "label": "typecheck: pid-dojo",
+      "type": "shell",
+      "command": "npm run typecheck",
+      "problemMatcher": ["$tsc"],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true,
+        "group": "pid-dojo-tasks"
+      },
+      "detail": "tsc --noEmit on src/."
+    },
+    {
+      // Production build: typecheck the
+      // whole project, then emit the optimized bundle into dist/.
+      "label": "build: pid-dojo",
+      "type": "shell",
+      "command": "npm run build",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": ["$tsc"],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true,
+        "group": "pid-dojo-tasks"
+      },
+      "detail": "tsc --noEmit && vite build -> dist/ (codemirror / chart / markdown split chunks)."
+    },
+    {
+      // Serve dist/ locally to check the production bundle.
+      "label": "preview: pid-dojo",
+      "type": "shell",
+      "command": "npm run preview",
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "vite-preview",
+        "pattern": { "regexp": "^$" },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "\\s*VITE v",
+          "endsPattern": "Local:\\s+http://localhost"
+        }
+      },
+      "dependsOn": "build: pid-dojo",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true,
+        "group": "pid-dojo-tasks"
+      },
+      "detail": "vite preview on the built dist/ (run after a successful build)."
+    },
+    {
+      // Convenience: dev server + typecheck watcher in one panel.
+      "label": "dev + typecheck",
+      "dependsOn": ["dev: pid-dojo", "typecheck: watch"],
+      "dependsOrder": "parallel",
+      "group": "none",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": false,
+        "group": "pid-dojo-tasks"
+      },
+      "detail": "Starts the Vite dev server and the tsc watcher together."
+    }
+  ]
+}
