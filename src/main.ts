@@ -11,7 +11,8 @@ import { showHelp, syncHelp, type HelpWindowState } from './helpWindow';
 import { LANGS, UI_TEXT, detectLang, isLang, saveLang } from './i18n';
 import * as store from './persistence';
 import { randomSeed } from './simulation/rng';
-import { TASKS, createWorksheet, findTask } from './tasks';
+import { TASKS, createWorksheet, findTask, worksheetSetpoint } from './tasks';
+import { showTuning, syncTuning, type TuningWindowState } from './tuningWindow';
 import { cloneWorksheet, cleanWorksheetName, worksheetLabel } from './state';
 import type { Lang, RunStatus, TaskDef, Worksheet } from './types';
 
@@ -37,6 +38,7 @@ const ui = {
   chartHost: el<HTMLElement>('chart'),
   chartLegend: el<HTMLElement>('chart-legend'),
   btnHelp: el<HTMLButtonElement>('btn-help'),
+  btnTuning: el<HTMLButtonElement>('btn-tuning'),
   editorHost: el<HTMLElement>('editor'),
   errorBox: el<HTMLElement>('error-box'),
   tabController: el<HTMLButtonElement>('tab-controller'),
@@ -97,6 +99,28 @@ function syncHelpWindow(): void {
 }
 
 // ---------------------------------------------------------------------------
+// Tuning calculator window (tuning.html)
+// ---------------------------------------------------------------------------
+
+function tuningState(): TuningWindowState {
+  return {
+    type: 'pid-dojo-tuning',
+    task: currentTask.id,
+    title: currentTask.title,
+    unit: currentTask.unit,
+    lang,
+    theme: isLight() ? 'light' : 'dark',
+    params: { ...(worksheet?.plantParams ?? {}) },
+    sp: worksheet ? worksheetSetpoint(currentTask, worksheet) : currentTask.setpoint,
+    acceptance: currentTask.acceptance,
+  };
+}
+
+function syncTuningWindow(): void {
+  syncTuning(tuningState());
+}
+
+// ---------------------------------------------------------------------------
 // Language (help pages + math reference only)
 // ---------------------------------------------------------------------------
 
@@ -112,6 +136,7 @@ function applyLang(next: Lang): void {
 
   renderMathHelp(ui.mathHelp, next);
   syncHelpWindow();
+  syncTuningWindow();
 }
 
 // ---------------------------------------------------------------------------
@@ -130,6 +155,7 @@ function applyTheme(light: boolean): void {
   editor?.setTheme(light);
   renderLegend(currentTask.unit);
   syncHelpWindow();
+  syncTuningWindow();
 }
 
 /** Series legend for the chart panel head (uPlot's own legend is disabled). */
@@ -316,6 +342,7 @@ async function loadWorksheet(wb: Worksheet): Promise<void> {
   ui.taskSelect.value = task.id;
   ui.sceneTitle.textContent = task.title;
   syncHelpWindow();
+  syncTuningWindow();
 
   ui.worksheetName.value = wb.name;
 
@@ -457,14 +484,26 @@ async function main(): Promise<void> {
     }
   });
 
-  // A reloaded help window asks for the current task / language / theme, and
-  // a language change made there is applied to the dojo as well.
+  ui.btnTuning.addEventListener('click', () => {
+    if (!showTuning(tuningState())) {
+      flashStatus('tuning window blocked — allow pop-ups for this page');
+    }
+  });
+
+  // A reloaded auxiliary window asks for the current task / language / theme,
+  // a language change made there is applied here, and the calculator can send
+  // a tuning snippet back to the editor.
   window.addEventListener('message', (event: MessageEvent) => {
-    const data = event.data as { type?: string; lang?: unknown } | null;
+    const data = event.data as { type?: string; lang?: unknown; code?: unknown } | null;
     if (data?.type === 'pid-dojo-help-ready') {
       syncHelpWindow();
+    } else if (data?.type === 'pid-dojo-tuning-ready') {
+      syncTuningWindow();
     } else if (data?.type === 'pid-dojo-lang' && isLang(data.lang) && data.lang !== lang) {
       applyLang(data.lang);
+    } else if (data?.type === 'pid-dojo-tuning-code' && typeof data.code === 'string') {
+      editor?.insertText(`${data.code}\n`);
+      window.focus();
     }
   });
 

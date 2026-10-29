@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PID Dojo — Tuning</title>
+  </head>
+  <body class="help-page tuning-page">
+    <main class="help-doc tuning-doc">
+      <header class="help-doc-head">
+        <h1>Tuning</h1>
+        <p id="tune-subtitle" class="muted small"></p>
+      </header>
+
+      <p id="tune-empty" class="hidden muted">
+        Open this window from the dojo (button <strong>Tuning</strong>) — it needs
+        the current worksheet. The calculator currently covers the heated tank.
+      </p>
+
+      <div id="tune-content">
+        <section class="tune-block">
+          <h3>Model</h3>
+          <dl id="tune-params" class="tune-params"></dl>
+        </section>
+
+        <section class="tune-block">
+          <h3>Target</h3>
+          <div class="tune-field">
+            <select id="tune-mode" aria-label="Kind of target">
+              <option value="offset">steady-state offset</option>
+              <option value="tau">closed-loop time constant τ_cl</option>
+            </select>
+            <input id="tune-target" type="number" min="0.01" step="0.05" aria-label="Target value" />
+            <span id="tune-target-unit" class="muted small"></span>
+          </div>
+          <p class="muted small">
+            Acceptance: settle ≤ <span id="tune-acc-settle">–</span> · offset ≤
+            <span id="tune-acc-offset">–</span> · overshoot ≤
+            <span id="tune-acc-over">–</span>
+          </p>
+        </section>
+
+        <section class="tune-block">
+          <h3>Result</h3>
+          <dl class="tune-results">
+            <dt>Kp</dt>
+            <dd id="tune-kp">–</dd>
+            <dt>offset e_ss</dt>
+            <dd id="tune-ess">–</dd>
+            <dt>τ_cl</dt>
+            <dd id="tune-taucl">–</dd>
+            <dt>full power</dt>
+            <dd id="tune-tsat">–</dd>
+            <dt>settle ≈</dt>
+            <dd id="tune-settle">–</dd>
+          </dl>
+          <ul id="tune-warnings" class="tune-warnings"></ul>
+        </section>
+
+        <section class="tune-block">
+          <h3>Code</h3>
+          <pre id="tune-code"><code></code></pre>
+          <div class="tune-actions">
+            <button id="btn-tune-copy" class="btn small">⧉ copy</button>
+            <button id="btn-tune-insert" class="btn primary small">insert into editor</button>
+          </div>
+          <p id="tune-hint" class="muted small"></p>
+        </section>
+      </div>
+    </main>
+    <script type="module" src="/src/tuning.ts"></script>
+  </body>
+</html>

@@ -6,6 +6,7 @@
 // once and then keeps it in sync by posting state messages.
 // ---------------------------------------------------------------------------
 
+import { popupFeatures } from './auxWindow';
 import type { Lang } from './types';
 
 export const HELP_WINDOW_NAME = 'pid-dojo-help';
@@ -37,13 +38,7 @@ export function helpWindowUrl(state: HelpWindowState): string {
 }
 
 function windowFeatures(): string {
-  const availW = window.screen.availWidth || 1200;
-  const availH = window.screen.availHeight || 900;
-  const width = Math.min(1100, Math.max(640, availW - 120));
-  const height = Math.min(950, Math.max(520, availH - 100));
-  const left = Math.max(0, Math.round((availW - width) / 2));
-  const top = Math.max(0, Math.round((availH - height) / 2));
-  return `popup=yes,width=${width},height=${height},left=${left},top=${top}`;
+  return popupFeatures(1100, 950);
 }
 
 /**
