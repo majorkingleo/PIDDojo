@@ -3,11 +3,11 @@
 // ---------------------------------------------------------------------------
 
 import './styles.css';
-import { marked } from 'marked';
 import { DojoController, type LogEntry, type RunInfo } from './app';
 import { Chart, seriesColors } from './chart';
 import { CodeEditor } from './controller/editor';
 import { renderMathHelp } from './controller/mathHelp';
+import { showHelp, syncHelp, type HelpWindowState } from './helpWindow';
 import { LANGS, UI_TEXT, detectLang, isLang, saveLang } from './i18n';
 import * as store from './persistence';
 import { randomSeed } from './simulation/rng';
@@ -35,10 +35,7 @@ const ui = {
   plantDesc: el<HTMLElement>('plant-desc'),
   chartHost: el<HTMLElement>('chart'),
   chartLegend: el<HTMLElement>('chart-legend'),
-  helpPanel: el<HTMLElement>('help-panel'),
-  helpTitle: el<HTMLElement>('help-title'),
-  helpBody: el<HTMLElement>('help-body'),
-  helpToggle: el<HTMLButtonElement>('btn-help-toggle'),
+  btnHelp: el<HTMLButtonElement>('btn-help'),
   editorHost: el<HTMLElement>('editor'),
   errorBox: el<HTMLElement>('error-box'),
   tabController: el<HTMLButtonElement>('tab-controller'),
@@ -79,16 +76,28 @@ let dojo: DojoController | null = null;
 let saveTimer: number | undefined;
 let flashTimer: number | undefined;
 let lang: Lang = 'en';
-let helpCollapsed = false;
+
+// ---------------------------------------------------------------------------
+// Help window (help.html)
+// ---------------------------------------------------------------------------
+
+function helpState(): HelpWindowState {
+  return {
+    type: 'pid-dojo-help',
+    task: currentTask.id,
+    lang,
+    theme: isLight() ? 'light' : 'dark',
+  };
+}
+
+/** Keep an already open help window on the current task / language / theme. */
+function syncHelpWindow(): void {
+  syncHelp(helpState());
+}
 
 // ---------------------------------------------------------------------------
 // Language (help pages + math reference only)
 // ---------------------------------------------------------------------------
-
-function renderTaskHelp(): void {
-  const html = marked.parse(currentTask.help[lang]);
-  ui.helpBody.innerHTML = typeof html === 'string' ? html : '';
-}
 
 function applyLang(next: Lang): void {
   lang = next;
@@ -97,12 +106,11 @@ function applyLang(next: Lang): void {
   ui.langSelect.value = next;
 
   const text = UI_TEXT[next];
-  ui.helpTitle.textContent = text.helpTitle;
+  ui.btnHelp.textContent = text.helpTitle;
   ui.mathTitle.textContent = text.mathTitle;
-  ui.helpToggle.textContent = helpCollapsed ? text.show : text.hide;
 
   renderMathHelp(ui.mathHelp, next);
-  renderTaskHelp();
+  syncHelpWindow();
 }
 
 // ---------------------------------------------------------------------------
@@ -120,6 +128,7 @@ function applyTheme(light: boolean): void {
   chart?.setTheme(light);
   editor?.setTheme(light);
   renderLegend(currentTask.unit);
+  syncHelpWindow();
 }
 
 /** Series legend for the chart panel head (uPlot's own legend is disabled). */
@@ -305,7 +314,7 @@ async function loadWorksheet(wb: Worksheet): Promise<void> {
 
   ui.taskSelect.value = task.id;
   ui.sceneTitle.textContent = task.title;
-  renderTaskHelp();
+  syncHelpWindow();
 
   ui.worksheetName.value = wb.name;
 
@@ -432,9 +441,16 @@ async function main(): Promise<void> {
   ui.tabDebug.addEventListener('click', () => setPane('debug'));
   ui.btnClearLog.addEventListener('click', () => clearLogView());
 
-  ui.helpToggle.addEventListener('click', () => {
-    helpCollapsed = ui.helpPanel.classList.toggle('collapsed');
-    ui.helpToggle.textContent = helpCollapsed ? UI_TEXT[lang].show : UI_TEXT[lang].hide;
+  ui.btnHelp.addEventListener('click', () => {
+    if (!showHelp(helpState())) {
+      flashStatus('help window blocked — allow pop-ups for this page');
+    }
+  });
+
+  // A reloaded help window asks for the current task / language / theme.
+  window.addEventListener('message', (event: MessageEvent) => {
+    const data = event.data as { type?: string } | null;
+    if (data?.type === 'pid-dojo-help-ready') syncHelpWindow();
   });
 
   ui.langSelect.addEventListener('change', () => {

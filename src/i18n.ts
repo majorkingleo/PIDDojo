@@ -51,22 +51,16 @@ export function saveLang(lang: Lang): void {
 export interface UiText {
   helpTitle: string;
   mathTitle: string;
-  hide: string;
-  show: string;
 }
 
 export const UI_TEXT: Record<Lang, UiText> = {
   en: {
     helpTitle: 'Help',
     mathTitle: 'Math & variables',
-    hide: 'hide',
-    show: 'show',
   },
   de: {
     helpTitle: 'Hilfe',
     mathTitle: 'Mathe & Variablen',
-    hide: 'ausblenden',
-    show: 'einblenden',
   },
 };
 

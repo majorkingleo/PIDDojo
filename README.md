@@ -41,6 +41,11 @@ npm run preview     # serve the production build
 - **Lang** — switches the help page and the math/variable reference between
   English and German (stored, so it survives a reload). Code, metrics and
   verdict intentionally stay in English.
+- **Help** — opens the task's help page in its own, resizable window with large
+  type, so the dojo stays visible next to it. The window follows task, language
+  and theme changes and keeps its state across a reload. Its text size is set
+  in the window itself (`A− / A+`, keys `-` `+` `0`, remembered) because the
+  browser zooms both windows together on `Ctrl` + scroll.
 - **New variant** — a fresh randomised (but always solvable) plant.
 - **Run / Reset / Stop** — *Reset* re-runs the same plant from its initial
   state; `Ctrl`/`Cmd` + `Enter` also starts a run.
@@ -72,8 +77,11 @@ npm run preview     # serve the production build
 
 ```
 index.html
+help.html              standalone help window (opened by the Help button)
 src/
   main.ts              UI wiring (selects, buttons, editor, chart, save)
+  help.ts              entry for help.html: renders the task help page
+  helpWindow.ts        opens / syncs that window (task, language, theme)
   app.ts               DojoController: 100 Hz physics loop + rAF rendering
   state.ts             run state + worksheet helpers
   types.ts             shared contracts (Worksheet, Plant, TaskDef, Metrics…)

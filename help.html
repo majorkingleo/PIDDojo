@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PID Dojo — Help</title>
+  </head>
+  <body class="help-page">
+    <main class="help-doc">
+      <div class="help-tools" role="group" aria-label="Text size">
+        <button id="btn-help-smaller" class="btn ghost small" title="Smaller text (−)">A−</button>
+        <button id="help-scale-label" class="btn ghost small" title="Reset to 100 % (0)">100 %</button>
+        <button id="btn-help-larger" class="btn ghost small" title="Larger text (+)">A+</button>
+      </div>
+      <header class="help-doc-head">
+        <h1 id="help-heading">Help</h1>
+        <p id="help-subtitle" class="muted small"></p>
+      </header>
+      <article id="help-body" class="markdown help-markdown"></article>
+    </main>
+    <script type="module" src="/src/help.ts"></script>
+  </body>
+</html>
