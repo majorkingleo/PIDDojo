@@ -56,7 +56,8 @@ npm run preview     # serve the production build
     that is killed after 2 s — so a `while (true)` cannot freeze the window.
     It reports settle / overshoot / steady error / IAE / PASS-FAIL, the
     predicted values next to them, a small sp-pv-u plot and the `debug()`
-    output.
+    output. The code area is drag-resizable (bar under the editor, arrow keys
+    when focused, double-click resets) and the height is remembered.
 
   Currently implemented for the heated tank.
 - **Help** — opens the task's help page in its own, resizable window with large

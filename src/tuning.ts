@@ -54,6 +54,7 @@ const ui = {
   toSandbox: el<HTMLButtonElement>('btn-tune-to-sandbox'),
   insert: el<HTMLButtonElement>('btn-tune-insert'),
   sandboxHost: el('sandbox-editor'),
+  sandboxResize: el('sandbox-resize'),
   sandboxBand: el('sandbox-band'),
   sandboxRun: el<HTMLButtonElement>('btn-sandbox-run'),
   sandboxReset: el<HTMLButtonElement>('btn-sandbox-reset'),
@@ -84,6 +85,36 @@ let lastKp = 0;
 let prediction: { settle: number; offset: number } | null = null;
 
 const SANDBOX_KEY = (taskId: string): string => `pid-dojo-sandbox-${taskId}`;
+
+// Resizable code area
+const SANDBOX_HEIGHT_KEY = 'pid-dojo-sandbox-height';
+const SANDBOX_MIN_HEIGHT = 120;
+const SANDBOX_DEFAULT_HEIGHT = 210;
+let dragStartY = 0;
+let dragStartHeight = 0;
+let dragging = false;
+
+function storedSandboxHeight(): number {
+  try {
+    const raw = Number(localStorage.getItem(SANDBOX_HEIGHT_KEY));
+    if (Number.isFinite(raw) && raw >= SANDBOX_MIN_HEIGHT) return raw;
+  } catch {
+    // storage may be unavailable
+  }
+  return SANDBOX_DEFAULT_HEIGHT;
+}
+
+function setSandboxHeight(px: number, persist = true): void {
+  const max = Math.max(SANDBOX_MIN_HEIGHT, Math.round(window.innerHeight * 0.8));
+  const height = Math.min(max, Math.max(SANDBOX_MIN_HEIGHT, Math.round(px)));
+  ui.sandboxHost.style.height = `${height}px`;
+  if (!persist) return;
+  try {
+    localStorage.setItem(SANDBOX_HEIGHT_KEY, String(height));
+  } catch {
+    // ignore: the height just will not survive a reload
+  }
+}
 
 function fmt(value: number, unit?: string): string {
   if (!Number.isFinite(value)) return 'never';
@@ -595,6 +626,44 @@ ui.sandboxReset.addEventListener('click', () => {
 
 ui.sandboxRun.addEventListener('click', () => runSandbox());
 ui.sandboxCopy.addEventListener('click', () => copyText(sandboxEditor?.getValue() ?? ''));
+
+// -- resizable code area ---------------------------------------------------
+setSandboxHeight(storedSandboxHeight(), false);
+
+ui.sandboxResize.addEventListener('pointerdown', (event: PointerEvent) => {
+  dragging = true;
+  dragStartY = event.clientY;
+  dragStartHeight = ui.sandboxHost.getBoundingClientRect().height;
+  ui.sandboxResize.classList.add('dragging');
+  ui.sandboxResize.setPointerCapture(event.pointerId);
+  event.preventDefault();
+});
+
+ui.sandboxResize.addEventListener('pointermove', (event: PointerEvent) => {
+  if (!dragging) return;
+  setSandboxHeight(dragStartHeight + (event.clientY - dragStartY), false);
+});
+
+const endDrag = (event: PointerEvent): void => {
+  if (!dragging) return;
+  dragging = false;
+  ui.sandboxResize.classList.remove('dragging');
+  ui.sandboxResize.releasePointerCapture(event.pointerId);
+  setSandboxHeight(ui.sandboxHost.getBoundingClientRect().height);
+};
+ui.sandboxResize.addEventListener('pointerup', endDrag);
+ui.sandboxResize.addEventListener('pointercancel', endDrag);
+
+ui.sandboxResize.addEventListener('dblclick', () => {
+  setSandboxHeight(SANDBOX_DEFAULT_HEIGHT);
+});
+
+ui.sandboxResize.addEventListener('keydown', (event: KeyboardEvent) => {
+  if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
+  event.preventDefault();
+  const current = ui.sandboxHost.getBoundingClientRect().height;
+  setSandboxHeight(current + (event.key === 'ArrowDown' ? 24 : -24));
+});
 
 window.addEventListener('keydown', (event: KeyboardEvent) => {
   if (!(event.ctrlKey || event.metaKey) || event.key !== 'Enter') return;
