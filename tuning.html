@@ -17,54 +17,97 @@
         the current worksheet. The calculator currently covers the heated tank.
       </p>
 
-      <div id="tune-content">
-        <section class="tune-block">
-          <h3>Model</h3>
-          <dl id="tune-params" class="tune-params"></dl>
+      <div id="tune-content" class="hidden">
+        <div class="tabs" role="tablist">
+          <button
+            id="tab-design"
+            class="tab active"
+            role="tab"
+            aria-selected="true"
+            aria-controls="panel-design"
+          >Design</button>
+          <button
+            id="tab-sandbox"
+            class="tab"
+            role="tab"
+            aria-selected="false"
+            aria-controls="panel-sandbox"
+          >Sandbox</button>
+        </div>
+        <p id="tune-hint" class="muted small"></p>
+
+        <section id="panel-design" role="tabpanel" aria-labelledby="tab-design">
+          <section class="tune-block">
+            <h3>Model</h3>
+            <dl id="tune-params" class="tune-params"></dl>
+          </section>
+
+          <section class="tune-block">
+            <h3>Target</h3>
+            <div class="tune-field">
+              <select id="tune-mode" aria-label="Kind of target">
+                <option value="offset">steady-state offset</option>
+                <option value="tau">closed-loop time constant τ_cl</option>
+              </select>
+              <input id="tune-target" type="number" min="0.01" step="0.05" aria-label="Target value" />
+              <span id="tune-target-unit" class="muted small"></span>
+            </div>
+            <p class="muted small">
+              Acceptance: settle ≤ <span id="tune-acc-settle">–</span> · offset ≤
+              <span id="tune-acc-offset">–</span> · overshoot ≤
+              <span id="tune-acc-over">–</span>
+            </p>
+          </section>
+
+          <section class="tune-block">
+            <h3>Result</h3>
+            <dl class="tune-results">
+              <dt>Kp</dt>
+              <dd id="tune-kp">–</dd>
+              <dt>offset e_ss</dt>
+              <dd id="tune-ess">–</dd>
+              <dt>τ_cl</dt>
+              <dd id="tune-taucl">–</dd>
+              <dt>full power</dt>
+              <dd id="tune-tsat">–</dd>
+              <dt>settle ≈</dt>
+              <dd id="tune-settle">–</dd>
+            </dl>
+            <ul id="tune-warnings" class="tune-warnings"></ul>
+          </section>
+
+          <section class="tune-block">
+            <h3>Template <span class="tune-note">suggestion — insert it or try it</span></h3>
+            <pre id="tune-code"><code></code></pre>
+            <div class="tune-actions">
+              <button id="btn-tune-copy" class="btn small">⧉ copy</button>
+              <button id="btn-tune-to-sandbox" class="btn small">→ Sandbox</button>
+              <button id="btn-tune-insert" class="btn primary small">Insert into editor</button>
+            </div>
+          </section>
         </section>
 
-        <section class="tune-block">
-          <h3>Target</h3>
-          <div class="tune-field">
-            <select id="tune-mode" aria-label="Kind of target">
-              <option value="offset">steady-state offset</option>
-              <option value="tau">closed-loop time constant τ_cl</option>
-            </select>
-            <input id="tune-target" type="number" min="0.01" step="0.05" aria-label="Target value" />
-            <span id="tune-target-unit" class="muted small"></span>
-          </div>
-          <p class="muted small">
-            Acceptance: settle ≤ <span id="tune-acc-settle">–</span> · offset ≤
-            <span id="tune-acc-offset">–</span> · overshoot ≤
-            <span id="tune-acc-over">–</span>
-          </p>
-        </section>
-
-        <section class="tune-block">
-          <h3>Result</h3>
-          <dl class="tune-results">
-            <dt>Kp</dt>
-            <dd id="tune-kp">–</dd>
-            <dt>offset e_ss</dt>
-            <dd id="tune-ess">–</dd>
-            <dt>τ_cl</dt>
-            <dd id="tune-taucl">–</dd>
-            <dt>full power</dt>
-            <dd id="tune-tsat">–</dd>
-            <dt>settle ≈</dt>
-            <dd id="tune-settle">–</dd>
-          </dl>
-          <ul id="tune-warnings" class="tune-warnings"></ul>
-        </section>
-
-        <section class="tune-block">
-          <h3>Code</h3>
-          <pre id="tune-code"><code></code></pre>
-          <div class="tune-actions">
-            <button id="btn-tune-copy" class="btn small">⧉ copy</button>
-            <button id="btn-tune-insert" class="btn primary small">insert into editor</button>
-          </div>
-          <p id="tune-hint" class="muted small"></p>
+        <section id="panel-sandbox" class="hidden" role="tabpanel" aria-labelledby="tab-sandbox">
+          <section class="tune-block">
+            <h3>Sandbox</h3>
+            <p class="muted small">
+              Runs on this worksheet with the same loop as the dojo: dt = 0.01 s,
+              settled after 5 s inside ±<span id="sandbox-band">–</span>.
+              <code>plant</code>, <code>debug()</code> and <code>log()</code> are
+              available.
+            </p>
+            <div id="sandbox-editor" class="sandbox-editor"></div>
+            <div class="tune-actions">
+              <button id="btn-sandbox-run" class="btn primary small">Test (Ctrl+Enter)</button>
+              <button id="btn-sandbox-reset" class="btn small">Reset to template</button>
+              <button id="btn-sandbox-copy" class="btn small">⧉ copy</button>
+            </div>
+            <p id="sandbox-status" class="muted small"></p>
+            <canvas id="sandbox-chart" class="sandbox-chart"></canvas>
+            <dl id="sandbox-metrics" class="tune-results"></dl>
+            <h3>Debug output</h3>
+            <pre id="sandbox-log" class="sandbox-log"></pre>
+          </section>
         </section>
       </div>
     </main>

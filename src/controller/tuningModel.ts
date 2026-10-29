@@ -172,3 +172,75 @@ export function tuningSnippet(
     `const Kp = ${formula};`,
   ].join('\n');
 }
+
+/** Complete, runnable controller for the sandbox: tuning constants + control(). */
+export function sandboxTemplate(
+  model: TuningModel,
+  mode: TuneMode,
+  target: number,
+  kp: number,
+): string {
+  return [
+    tuningSnippet(model, mode, target, kp),
+    '',
+    'function control(e, dt, mem) {',
+    '  return Kp * e;',
+    '}',
+  ].join('\n');
+}
+
+// ---------------------------------------------------------------------------
+// Sandbox header: the worksheet's model values as comments, refreshed in place
+// whenever the worksheet changes (new variant, other task).
+// ---------------------------------------------------------------------------
+
+export const SANDBOX_HEADER_START = '// ---- model (auto-updated) ----';
+export const SANDBOX_HEADER_END = '// ---- end model ----';
+
+export interface SandboxHeaderInput {
+  title: string;
+  unit: string;
+  params: Record<string, number>;
+  sp: number;
+  model: TuningModel | null;
+}
+
+/** Comment block with the raw parameters and the derived values. */
+export function sandboxHeader(input: SandboxHeaderInput): string {
+  const lines = [
+    SANDBOX_HEADER_START,
+    `// ${input.title} — worksheet model (read-only as plant.*)`,
+  ];
+
+  const cells = Object.keys(input.params).map((key) => `${key} = ${num(input.params[key], 4)}`);
+  for (let i = 0; i < cells.length; i += 2) {
+    const left = cells[i].padEnd(30);
+    lines.push(`// ${(left + (cells[i + 1] ?? '')).trimEnd()}`);
+  }
+
+  if (input.model) {
+    const m = input.model;
+    const unit = input.unit ? ` ${input.unit}` : '';
+    lines.push(
+      `// K = ${num(m.K, 4)}${unit}/u   tau = ${num(m.tau, 4)} s   dT = ${num(m.dT, 4)}${unit}`,
+    );
+  }
+
+  lines.push(SANDBOX_HEADER_END);
+  return lines.join('\n');
+}
+
+/**
+ * Replace the auto block in `code` with `header`; when the markers are missing
+ * the block is put in front (so older sandbox code gets one too). Repeated
+ * calls are idempotent because the markers are then found.
+ */
+export function withSandboxHeader(code: string, header: string): string {
+  const start = code.indexOf(SANDBOX_HEADER_START);
+  const end = code.indexOf(SANDBOX_HEADER_END);
+  if (start === -1 || end < start) {
+    if (!code.trim()) return `${header}\n`;
+    return `${header}\n\n${code}`;
+  }
+  return code.slice(0, start) + header + code.slice(end + SANDBOX_HEADER_END.length);
+}

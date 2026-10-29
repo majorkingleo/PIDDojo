@@ -704,6 +704,76 @@ input[type='text']:focus-visible,
   margin: 8px 0 0;
 }
 
+.tuning-doc .tabs {
+  margin: 12px 0 2px;
+}
+
+.tune-note {
+  margin-left: 6px;
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--accent);
+}
+
+#sandbox-status {
+  min-height: 1.2em;
+  margin: 8px 0 0;
+}
+
+#sandbox-status.bad {
+  color: var(--bad);
+}
+
+.sandbox-editor {
+  overflow: hidden;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.sandbox-editor .cm-editor {
+  height: 210px;
+}
+
+.sandbox-editor .cm-editor.cm-focused {
+  outline: none;
+}
+
+.sandbox-editor .cm-scroller {
+  font-family: ui-monospace, 'JetBrains Mono', 'Cascadia Code', monospace;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.sandbox-chart {
+  display: block;
+  width: 100%;
+  height: 170px;
+  margin-top: 10px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.sandbox-log {
+  max-height: 110px;
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  overflow: auto;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-family: ui-monospace, 'JetBrains Mono', monospace;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.sandbox-log.empty {
+  font-style: italic;
+}
+
 /* -- editor ----------------------------------------------------------------- */
 
 .editor-host {

@@ -42,11 +42,23 @@ npm run preview     # serve the production build
   English and German (stored, so it survives a reload). Code, metrics and
   verdict intentionally stay in English.
 - **Tuning** — opens a dimensioning calculator in its own window, so the help
-  page can stay open next to it. It reads the worksheet's model values and
-  acceptance criteria, solves for `Kp` for a chosen target offset (or a chosen
-  closed-loop time constant), shows the predicted offset / `τ_cl` / full-power
-  phase / settle time, and can paste the generated snippet into the editor at
-  the cursor. Currently implemented for the heated tank.
+  page can stay open next to it. Two tabs:
+  - *Design* reads the worksheet's model values and acceptance criteria, solves
+    for `Kp` for a chosen target offset (or a chosen closed-loop time constant),
+    shows the predicted offset / `τ_cl` / full-power phase / settle time, and
+    offers the generated code as a **template** — `Insert into editor` puts the
+    tuning lines at the cursor.
+  - *Sandbox* is an editable copy of that template, starting with an
+    auto-updated comment block that lists the worksheet's parameters and the
+    derived `K`, `tau`, `dT`. `Test` (or `Ctrl`+`Enter`)
+    runs **your** code on the current worksheet with the same loop as the dojo
+    (dt = 0.01 s, 5 s inside the band, same `plant`/`debug`), inside a worker
+    that is killed after 2 s — so a `while (true)` cannot freeze the window.
+    It reports settle / overshoot / steady error / IAE / PASS-FAIL, the
+    predicted values next to them, a small sp-pv-u plot and the `debug()`
+    output.
+
+  Currently implemented for the heated tank.
 - **Help** — opens the task's help page in its own, resizable window with large
   type, so the dojo stays visible next to it. The window follows task, language
   and theme changes and keeps its state across a reload. It has its own `EN/DE`
@@ -121,6 +133,8 @@ src/
   styles.css           layout + dark/light theme
   simulation/
     plant.ts           shared types + numeric helpers
+    headless.ts        canvas-free run loop (identical numbers to the dojo)
+    sandboxWorker.ts   runs the tuning sandbox off the UI thread
     rng.ts             mulberry32 seeded RNG
     tank.ts            heated tank
     balloon.ts         hot-air balloon
