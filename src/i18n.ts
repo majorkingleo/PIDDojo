@@ -89,8 +89,13 @@ const MATH_HELP_EN: HelpGroup[] = [
       { name: 'mem.pv', description: 'current measurement (process value)' },
       { name: 'mem.prevE', description: 'error of the previous step' },
       { name: 'mem.t', description: 'simulation time in seconds' },
-      { name: 'mem.i', description: 'free slot — typical integral accumulator' },
-    ],
+      { name: 'mem.i', description: 'free slot — typical integral accumulator' },      {
+        name: 'plant',
+        description:
+          'read-only model values of this worksheet, e.g. plant.P, plant.kLoss, plant.C, plant.T_amb',
+      },
+      { name: 'plant.sp', description: 'setpoint of the worksheet (design value)' },
+      { name: 'plant.uMin / uMax', description: 'actuator range the return value is clamped to' },    ],
   },
   {
     title: 'Math functions',
@@ -161,6 +166,13 @@ const MATH_HELP_DE: HelpGroup[] = [
       { name: 'mem.prevE', description: 'Fehler des vorherigen Schritts' },
       { name: 'mem.t', description: 'Simulationszeit in Sekunden' },
       { name: 'mem.i', description: 'freier Platz — üblicher Integralspeicher' },
+      {
+        name: 'plant',
+        description:
+          'schreibgeschützte Modellwerte des Worksheets, z. B. plant.P, plant.kLoss, plant.C, plant.T_amb',
+      },
+      { name: 'plant.sp', description: 'Sollwert des Worksheets (Auslegungswert)' },
+      { name: 'plant.uMin / uMax', description: 'Stellbereich, auf den der Rückgabewert begrenzt wird' },
     ],
   },
   {
@@ -333,6 +345,25 @@ infinity. They only become useful once sensor or actuator delay is added.
 (\`e_ss ∝ 1/(1 + Kp·K)\`), so raise it until the steady-state error is below
 1.5 °C — beyond that point saturation, not gain, sets the pace.
 
+**Do it in the controller.** \`plant\` holds the model values of the current
+worksheet, so the tuning can compute itself instead of being copied out of the
+scene header:
+
+\`\`\`js
+function control(e, dt, mem) {
+  const { P, kLoss, C, T_amb, sp } = plant;   // kLoss = k_loss in the formulas
+  const K = P / kLoss;                        // °C per unit duty
+  const tau = C / kLoss;                      // s
+  const dT = sp - T_amb;
+  const Kp = (dT / 0.2 - 1) / K;              // target offset: 0.2 °C
+  return Kp * e;
+}
+\`\`\`
+
+Top-level code runs once per run, so constants declared before \`control()\`
+behave like an init block. Either way the same function re-dimensions itself
+when you press *New variant*.
+
 ### Acceptance
 
 - settle time ≤ **30 s**
@@ -443,6 +474,25 @@ mit Sensor- oder Stellgliedverzögerung.
 **Oder empirisch.** Verdoppeln von \`Kp\` halbiert den Offset ungefähr
 (\`e_ss ∝ 1/(1 + Kp·K)\`); erhöhe ihn also, bis die bleibende Abweichung unter
 1,5 °C liegt — danach bestimmt die Sättigung das Tempo, nicht der Gain.
+
+**Im Regler rechnen.** \`plant\` enthält die Modellwerte des aktuellen
+Worksheets; die Auslegung kann sich damit selbst berechnen, statt aus dem
+Szenen-Kopf abgeschrieben zu werden:
+
+\`\`\`js
+function control(e, dt, mem) {
+  const { P, kLoss, C, T_amb, sp } = plant;   // kLoss = k_loss in den Formeln
+  const K = P / kLoss;                        // °C pro Tastgrad
+  const tau = C / kLoss;                      // s
+  const dT = sp - T_amb;
+  const Kp = (dT / 0.2 - 1) / K;              // Ziel-Offset: 0,2 °C
+  return Kp * e;
+}
+\`\`\`
+
+Code auf oberster Ebene läuft einmal pro Lauf — Konstanten vor \`control()\`
+wirken damit wie ein Init-Block. Die Funktion dimensioniert sich so auch bei
+*New variant* selbst neu.
 
 ### Abnahmekriterien
 

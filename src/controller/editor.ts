@@ -78,6 +78,13 @@ export class CodeEditor {
     });
   }
 
+  /** Insert `text` at the cursor (replacing the selection) and focus the editor. */
+  insertText(text: string): void {
+    const { state } = this.view;
+    this.view.dispatch(state.replaceSelection(text));
+    this.view.focus();
+  }
+
   setTheme(light: boolean): void {
     this.view.dispatch({
       effects: this.theme.reconfigure(light ? [] : oneDark),

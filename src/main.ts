@@ -33,6 +33,7 @@ const ui = {
   scene: el<HTMLCanvasElement>('scene'),
   sceneTitle: el<HTMLElement>('scene-title'),
   plantDesc: el<HTMLElement>('plant-desc'),
+  btnInsertPlant: el<HTMLButtonElement>('btn-insert-plant'),
   chartHost: el<HTMLElement>('chart'),
   chartLegend: el<HTMLElement>('chart-legend'),
   btnHelp: el<HTMLButtonElement>('btn-help'),
@@ -436,6 +437,15 @@ async function main(): Promise<void> {
   });
 
   ui.btnTheme.addEventListener('click', () => applyTheme(!isLight()));
+
+  // Drop a destructuring line for the model values at the cursor, so the
+  // controller can compute its own gains from `plant` instead of copying
+  // numbers out of the scene header.
+  ui.btnInsertPlant.addEventListener('click', () => {
+    if (!worksheet) return;
+    const names = [...Object.keys(worksheet.plantParams), 'sp'];
+    editor?.insertText(`const { ${names.join(', ')} } = plant;\n`);
+  });
 
   ui.tabController.addEventListener('click', () => setPane('controller'));
   ui.tabDebug.addEventListener('click', () => setPane('debug'));

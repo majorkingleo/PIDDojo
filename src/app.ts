@@ -11,6 +11,7 @@ import {
   type CompiledController,
   type LogFn,
   type Mem,
+  type PlantInfo,
 } from './controller/compile';
 import { evaluateRun, passed, worksheetSetpoint } from './tasks';
 import { clamp } from './simulation/plant';
@@ -92,6 +93,8 @@ export class DojoController {
   private mem: Mem = {};
   private prevE = 0;
   private setpoint = 0;
+  /** Frozen copy of the worksheet's model values, injected as `plant`. */
+  private plantInfo: PlantInfo = {};
 
   private acc = 0;
   private lastFrame = 0;
@@ -129,6 +132,15 @@ export class DojoController {
     this.plant = task.plantFactory();
     this.plant.configure(worksheet.plantParams, this.setpoint);
 
+    // Values the user's code sees as `plant` — frozen so a controller cannot
+    // corrupt the model between runs.
+    this.plantInfo = Object.freeze({
+      ...worksheet.plantParams,
+      sp: this.setpoint,
+      uMin: task.uMin,
+      uMax: task.uMax,
+    });
+
     this.state = createRunState();
     this.metrics = null;
     this.control = null;
@@ -148,7 +160,7 @@ export class DojoController {
 
     let control: CompiledController;
     try {
-      control = compileController(this.getFormula(), this.log);
+      control = compileController(this.getFormula(), this.log, this.plantInfo);
     } catch (err) {
       this.metrics = null;
       endRun(this.state, 'error', err instanceof Error ? err.message : String(err));

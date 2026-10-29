@@ -64,6 +64,23 @@ npm run preview     # serve the production build
   The runner injects `mem.sp`, `mem.pv`, `mem.prevE`, `mem.t` before every
   call and clamps your return value to the actuator range. `mem` is fresh for
   every run, so `mem.i` (integral) and friends are safe to use in later phases.
+- **`plant`** — a frozen, read-only map of the worksheet's model values:
+  the raw plant parameters (`plant.P`, `plant.kLoss`, `plant.C`,
+  `plant.T_amb`, …) plus `plant.sp`, `plant.uMin` and `plant.uMax`. A
+  controller can therefore dimension itself from the model instead of copying
+  numbers out of the scene header:
+
+  ```js
+  function control(e, dt, mem) {
+    const { P, kLoss, C, T_amb, sp } = plant;
+    const Kp = ((sp - T_amb) / 0.2 - 1) / (P / kLoss);  // 0.2 °C offset
+    return Kp * e;
+  }
+  ```
+
+  Code above `control()` runs once per run, so it works as an init block. The
+  **⧉ plant** button in the scene header inserts that destructuring line at the
+  cursor.
 - **Debug log** — call `debug(value…)` or `log(value…)` inside `control()`;
   the lines appear in the *Debug log* tab next to the editor, stamped with the
   simulation time. Output is capped at 500 lines per run.

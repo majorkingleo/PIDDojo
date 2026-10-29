@@ -50,7 +50,14 @@
         <section class="panel scene-panel">
           <div class="panel-head">
             <h2 id="scene-title">Scene</h2>
-            <span id="plant-desc" class="badge muted"></span>
+            <div class="scene-meta">
+              <span id="plant-desc" class="badge muted"></span>
+              <button
+                id="btn-insert-plant"
+                class="btn ghost small"
+                title="Insert the model values into the editor as variables"
+              >⧉ plant</button>
+            </div>
           </div>
           <div class="canvas-wrap">
             <canvas id="scene"></canvas>

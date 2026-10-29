@@ -22,6 +22,8 @@ import {
 const TANK_STARTER = `// Heated tank — Phase 1: P controller
 // e = setpoint - T   (temperature error, °C)
 // dt = 0.01 s        mem = persistent object
+// plant.* holds the model values: plant.P, plant.kLoss, plant.C,
+// plant.T_amb, plant.sp — use them to dimension Kp in code.
 // debug(e) writes to the "Debug log" tab
 function control(e, dt, mem) {
   const Kp = 4;          // try 1 … 20

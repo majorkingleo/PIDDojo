@@ -236,6 +236,19 @@ input[type='text']:focus-visible,
   letter-spacing: 0.02em;
 }
 
+.scene-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.scene-meta .badge {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .controls {
   display: flex;
   align-items: center;
