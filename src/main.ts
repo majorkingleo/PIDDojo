@@ -447,10 +447,15 @@ async function main(): Promise<void> {
     }
   });
 
-  // A reloaded help window asks for the current task / language / theme.
+  // A reloaded help window asks for the current task / language / theme, and
+  // a language change made there is applied to the dojo as well.
   window.addEventListener('message', (event: MessageEvent) => {
-    const data = event.data as { type?: string } | null;
-    if (data?.type === 'pid-dojo-help-ready') syncHelpWindow();
+    const data = event.data as { type?: string; lang?: unknown } | null;
+    if (data?.type === 'pid-dojo-help-ready') {
+      syncHelpWindow();
+    } else if (data?.type === 'pid-dojo-lang' && isLang(data.lang) && data.lang !== lang) {
+      applyLang(data.lang);
+    }
   });
 
   ui.langSelect.addEventListener('change', () => {

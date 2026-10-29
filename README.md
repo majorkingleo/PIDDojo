@@ -43,9 +43,10 @@ npm run preview     # serve the production build
   verdict intentionally stay in English.
 - **Help** — opens the task's help page in its own, resizable window with large
   type, so the dojo stays visible next to it. The window follows task, language
-  and theme changes and keeps its state across a reload. Its text size is set
-  in the window itself (`A− / A+`, keys `-` `+` `0`, remembered) because the
-  browser zooms both windows together on `Ctrl` + scroll.
+  and theme changes and keeps its state across a reload. It has its own `EN/DE`
+  picker (which switches the dojo too) and its own text size (`A− / A+`, keys
+  `-` `+` `0`, remembered) because the browser zooms both windows together on
+  `Ctrl` + scroll.
 - **New variant** — a fresh randomised (but always solvable) plant.
 - **Run / Reset / Stop** — *Reset* re-runs the same plant from its initial
   state; `Ctrl`/`Cmd` + `Enter` also starts a run.

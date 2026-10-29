@@ -18,6 +18,12 @@ export interface HelpWindowState {
   theme: 'light' | 'dark';
 }
 
+/** Message sent back by the help window when its language picker changes. */
+export interface HelpWindowLangMessage {
+  type: 'pid-dojo-lang';
+  lang: Lang;
+}
+
 let handle: Window | null = null;
 
 /** `help.html` sits next to the page that is currently running (dev or dist). */

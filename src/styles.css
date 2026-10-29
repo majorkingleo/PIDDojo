@@ -511,6 +511,11 @@ input[type='text']:focus-visible,
   font-variant-numeric: tabular-nums;
 }
 
+.help-tools #help-lang {
+  padding: 4px 6px;
+  font-size: 12px;
+}
+
 .help-tools #help-scale-label:hover {
   color: var(--text);
 }

@@ -9,8 +9,8 @@
 
 import './styles.css';
 import { marked } from 'marked';
-import type { HelpWindowState } from './helpWindow';
-import { detectLang, isLang, UI_TEXT } from './i18n';
+import type { HelpWindowLangMessage, HelpWindowState } from './helpWindow';
+import { detectLang, isLang, LANGS, saveLang, UI_TEXT } from './i18n';
 import { findTask, TASKS } from './tasks';
 import type { Lang, TaskDef } from './types';
 
@@ -32,6 +32,7 @@ const ui = {
   heading: el('help-heading'),
   subtitle: el('help-subtitle'),
   body: el('help-body'),
+  langSelect: el<HTMLSelectElement>('help-lang'),
   scaleLabel: el<HTMLButtonElement>('help-scale-label'),
   smaller: el<HTMLButtonElement>('btn-help-smaller'),
   larger: el<HTMLButtonElement>('btn-help-larger'),
@@ -91,6 +92,7 @@ function render(): void {
 
   ui.heading.textContent = text.helpTitle;
   ui.subtitle.textContent = `${task.title} · Phase ${task.phase} · ${task.unit}`;
+  ui.langSelect.value = lang;
 
   const html = marked.parse(task.help[lang]);
   ui.body.innerHTML = typeof html === 'string' ? html : '';
@@ -118,6 +120,26 @@ window.addEventListener('message', (event: MessageEvent) => {
 });
 
 render();
+
+// Language: this window can drive the choice, the dojo follows along.
+for (const option of LANGS) {
+  const item = document.createElement('option');
+  item.value = option.id;
+  item.textContent = option.label;
+  ui.langSelect.append(item);
+}
+ui.langSelect.value = lang;
+
+ui.langSelect.addEventListener('change', () => {
+  const value = ui.langSelect.value;
+  if (!isLang(value) || value === lang) return;
+  lang = value;
+  saveLang(lang);
+  render();
+
+  const message: HelpWindowLangMessage = { type: 'pid-dojo-lang', lang };
+  window.opener?.postMessage(message, '*');
+});
 
 // Text size: buttons, plus + / - / 0 (Ctrl+scroll stays browser zoom).
 ui.smaller.addEventListener('click', () => applyScale(scale - SCALE_STEP));
